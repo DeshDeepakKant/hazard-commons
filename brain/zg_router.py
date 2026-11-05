@@ -127,7 +127,8 @@ def _pick(d: dict[str, Any], *keys: str) -> Any:
 class ZGRouter:
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None,
                  model: Optional[str] = None, timeout_s: Optional[float] = None,
-                 trust_mode: Optional[str] = None, verify_tee: Optional[bool] = None):
+                 trust_mode: Optional[str] = None, verify_tee: Optional[bool] = None,
+                 thinking: Optional[bool] = None, max_tokens: Optional[int] = None):
         bs = brain_settings()
         self.base_url = base_url or configured_base_url()
         self.api_key = api_key or configured_api_key() or ""
@@ -135,6 +136,11 @@ class ZGRouter:
         self.timeout_s = float(timeout_s if timeout_s is not None else bs.get("timeout_s", 15))
         self.trust_mode = trust_mode or bs.get("trust_mode", "private")
         self.verify_tee = bool(bs.get("verify_tee", True) if verify_tee is None else verify_tee)
+        # 0gm-1.0-35b-a3b has "thinking enabled by default" (GET /models). Checkpoints need a fast
+        # JSON verdict, so thinking is off unless brain.thinking / ZG_THINKING=1.
+        self.thinking = bool(bs.get("thinking", False) or (env("ZG_THINKING", "0") in ("1", "true"))
+                             if thinking is None else thinking)
+        self.max_tokens = int(max_tokens or bs.get("max_tokens", 1024))
         self._client = self._make_client(self.base_url)
 
     # ------------------------------------------------------------------ plumbing
@@ -152,7 +158,7 @@ class ZGRouter:
 
     # ------------------------------------------------------------------ calls
     def chat(self, messages: list[dict[str, Any]], client_request_id: Optional[str] = None,
-             max_tokens: int = 600, temperature: float = 0.0) -> RouterResponse:
+             max_tokens: Optional[int] = None, temperature: float = 0.0) -> RouterResponse:
         headers = {"X-0G-Provider-Trust-Mode": self.trust_mode}
         if client_request_id:
             headers["X-Client-Request-Id"] = client_request_id
@@ -163,9 +169,10 @@ class ZGRouter:
                 messages=messages,  # type: ignore[arg-type]
                 response_format={"type": "json_object"},
                 temperature=temperature,
-                max_tokens=max_tokens,
+                max_tokens=max_tokens or self.max_tokens,
                 extra_headers=headers,
-                extra_body={"verify_tee": self.verify_tee},
+                extra_body={"verify_tee": self.verify_tee,
+                            "chat_template_kwargs": {"enable_thinking": self.thinking}},
             )
         except openai.APITimeoutError as e:
             raise RouterError("timeout", f"no response within {self.timeout_s:.1f}s ({e})",

@@ -130,6 +130,7 @@ def test_success_captures_request_id_trace_and_headers(fake):
     assert hdr["authorization"] == "Bearer sk-test-0123456789abcdef"
     body = fake.requests[0]["body"]
     assert body["verify_tee"] is True
+    assert body["chat_template_kwargs"] == {"enable_thinking": False}
     assert body["response_format"] == {"type": "json_object"}
     assert body["model"] == "0gm-1.0-35b-a3b"
     assert res.latency_ms is not None and b.online()

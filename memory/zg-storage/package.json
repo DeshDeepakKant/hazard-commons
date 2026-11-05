@@ -1,0 +1,19 @@
+{
+  "name": "hazard-commons-zg-storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "0G Storage sidecar for Hazard Commons: upload/download files via the 0G Storage TS SDK",
+  "scripts": {
+    "upload": "node upload.mjs",
+    "download": "node download.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@0gfoundation/0g-storage-ts-sdk": "^1.2.13",
+    "dotenv": "^18.0.9",
+    "ethers": "^6.13.1"
+  }
+}

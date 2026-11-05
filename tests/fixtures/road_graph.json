@@ -1,0 +1,707 @@
+{
+ "nodes": [
+  {
+   "id": "n0_0",
+   "x": -120.0,
+   "y": -120.0
+  },
+  {
+   "id": "n0_1",
+   "x": -120.0,
+   "y": -40.0
+  },
+  {
+   "id": "n0_2",
+   "x": -120.0,
+   "y": 40.0
+  },
+  {
+   "id": "n0_3",
+   "x": -120.0,
+   "y": 120.0
+  },
+  {
+   "id": "n1_0",
+   "x": -40.0,
+   "y": -120.0
+  },
+  {
+   "id": "n1_1",
+   "x": -40.0,
+   "y": -40.0
+  },
+  {
+   "id": "n1_2",
+   "x": -40.0,
+   "y": 40.0
+  },
+  {
+   "id": "n1_3",
+   "x": -40.0,
+   "y": 120.0
+  },
+  {
+   "id": "n2_0",
+   "x": 40.0,
+   "y": -120.0
+  },
+  {
+   "id": "n2_1",
+   "x": 40.0,
+   "y": -40.0
+  },
+  {
+   "id": "n2_2",
+   "x": 40.0,
+   "y": 40.0
+  },
+  {
+   "id": "n2_3",
+   "x": 40.0,
+   "y": 120.0
+  },
+  {
+   "id": "n3_0",
+   "x": 120.0,
+   "y": -120.0
+  },
+  {
+   "id": "n3_1",
+   "x": 120.0,
+   "y": -40.0
+  },
+  {
+   "id": "n3_2",
+   "x": 120.0,
+   "y": 40.0
+  },
+  {
+   "id": "n3_3",
+   "x": 120.0,
+   "y": 120.0
+  }
+ ],
+ "edges": [
+  {
+   "id": "e0",
+   "from": "n0_0",
+   "to": "n1_0",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 0",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     -120.0
+    ],
+    [
+     -80.0,
+     -117.0
+    ],
+    [
+     -40.0,
+     -120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e1",
+   "from": "n0_0",
+   "to": "n0_1",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 1",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     -120.0
+    ],
+    [
+     -117.0,
+     -80.0
+    ],
+    [
+     -120.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e2",
+   "from": "n0_1",
+   "to": "n1_1",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 2",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     -40.0
+    ],
+    [
+     -80.0,
+     -37.0
+    ],
+    [
+     -40.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e3",
+   "from": "n0_1",
+   "to": "n0_2",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 3",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     -40.0
+    ],
+    [
+     -117.0,
+     0.0
+    ],
+    [
+     -120.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e4",
+   "from": "n0_2",
+   "to": "n1_2",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 4",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     40.0
+    ],
+    [
+     -80.0,
+     43.0
+    ],
+    [
+     -40.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e5",
+   "from": "n0_2",
+   "to": "n0_3",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 5",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     40.0
+    ],
+    [
+     -117.0,
+     80.0
+    ],
+    [
+     -120.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e6",
+   "from": "n0_3",
+   "to": "n1_3",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 6",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     120.0
+    ],
+    [
+     -80.0,
+     123.0
+    ],
+    [
+     -40.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e7",
+   "from": "n1_0",
+   "to": "n2_0",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 7",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     -120.0
+    ],
+    [
+     0.0,
+     -117.0
+    ],
+    [
+     40.0,
+     -120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e8",
+   "from": "n1_0",
+   "to": "n1_1",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 8",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     -120.0
+    ],
+    [
+     -37.0,
+     -80.0
+    ],
+    [
+     -40.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e9",
+   "from": "n1_1",
+   "to": "n2_1",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 9",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     -40.0
+    ],
+    [
+     0.0,
+     -37.0
+    ],
+    [
+     40.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e10",
+   "from": "n1_1",
+   "to": "n1_2",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 10",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     -40.0
+    ],
+    [
+     -37.0,
+     0.0
+    ],
+    [
+     -40.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e11",
+   "from": "n1_2",
+   "to": "n2_2",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 11",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     40.0
+    ],
+    [
+     0.0,
+     43.0
+    ],
+    [
+     40.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e12",
+   "from": "n1_2",
+   "to": "n1_3",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 12",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     40.0
+    ],
+    [
+     -37.0,
+     80.0
+    ],
+    [
+     -40.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e13",
+   "from": "n1_3",
+   "to": "n2_3",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 13",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     -40.0,
+     120.0
+    ],
+    [
+     0.0,
+     123.0
+    ],
+    [
+     40.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e14",
+   "from": "n2_0",
+   "to": "n3_0",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 14",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     -120.0
+    ],
+    [
+     80.0,
+     -117.0
+    ],
+    [
+     120.0,
+     -120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e15",
+   "from": "n2_0",
+   "to": "n2_1",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 15",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     -120.0
+    ],
+    [
+     43.0,
+     -80.0
+    ],
+    [
+     40.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e16",
+   "from": "n2_1",
+   "to": "n3_1",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 16",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     -40.0
+    ],
+    [
+     80.0,
+     -37.0
+    ],
+    [
+     120.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e17",
+   "from": "n2_1",
+   "to": "n2_2",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 17",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     -40.0
+    ],
+    [
+     43.0,
+     0.0
+    ],
+    [
+     40.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e18",
+   "from": "n2_2",
+   "to": "n3_2",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 18",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     40.0
+    ],
+    [
+     80.0,
+     43.0
+    ],
+    [
+     120.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e19",
+   "from": "n2_2",
+   "to": "n2_3",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 19",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     40.0
+    ],
+    [
+     43.0,
+     80.0
+    ],
+    [
+     40.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e20",
+   "from": "n2_3",
+   "to": "n3_3",
+   "length": 80.22,
+   "lanes": 2,
+   "name": "Fixture Rd 20",
+   "kind": "drive",
+   "oneway": false,
+   "shape": [
+    [
+     40.0,
+     120.0
+    ],
+    [
+     80.0,
+     123.0
+    ],
+    [
+     120.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e21",
+   "from": "n3_0",
+   "to": "n3_1",
+   "length": 80.22,
+   "lanes": 1,
+   "name": "Fixture Rd 21",
+   "kind": "drive",
+   "oneway": true,
+   "shape": [
+    [
+     120.0,
+     -120.0
+    ],
+    [
+     123.0,
+     -80.0
+    ],
+    [
+     120.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e22",
+   "from": "n3_1",
+   "to": "n3_2",
+   "length": 80.22,
+   "lanes": 1,
+   "name": "Fixture Rd 22",
+   "kind": "drive",
+   "oneway": true,
+   "shape": [
+    [
+     120.0,
+     -40.0
+    ],
+    [
+     123.0,
+     0.0
+    ],
+    [
+     120.0,
+     40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "e23",
+   "from": "n3_2",
+   "to": "n3_3",
+   "length": 80.22,
+   "lanes": 1,
+   "name": "Fixture Rd 23",
+   "kind": "drive",
+   "oneway": true,
+   "shape": [
+    [
+     120.0,
+     40.0
+    ],
+    [
+     123.0,
+     80.0
+    ],
+    [
+     120.0,
+     120.0
+    ]
+   ],
+   "sumo_edge_id": null
+  },
+  {
+   "id": "w0",
+   "from": "n0_0",
+   "to": "n1_1",
+   "length": 113.1,
+   "lanes": 1,
+   "name": "Footpath",
+   "kind": "walk",
+   "oneway": false,
+   "shape": [
+    [
+     -120.0,
+     -120.0
+    ],
+    [
+     -40.0,
+     -40.0
+    ]
+   ],
+   "sumo_edge_id": null
+  }
+ ]
+}

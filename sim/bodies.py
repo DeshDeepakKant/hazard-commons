@@ -35,8 +35,12 @@ ACTOR_COLORS: dict[str, Color] = {
     "car": (0.75, 0.75, 0.78, 1), "auto": (0.15, 0.55, 0.2, 1), "bike": (0.2, 0.2, 0.25, 1),
     "bus": (0.85, 0.2, 0.15, 1), "pedestrian": (0.85, 0.65, 0.45, 1),
 }
-# collision group for kinematic actors: hit by lidar rays but no contact forces on robots
-ACTOR_GROUP, ACTOR_MASK = 0x40, 0x40
+# Collision groups. Kinematic actors are hit by lidar rays but generate no contacts at all
+# (pybullet's pair filter is effectively OR-ed, so every other body must also mask them out;
+# this also removes ~500 useless actor-ground contacts per step).
+ACTOR_GROUP, ACTOR_MASK = 0x40, 0x0
+STATIC_GROUP = 0x2
+NOT_ACTORS = 0xFFFF & ~ACTOR_GROUP
 
 
 def hex_to_rgba(h: str, a: float = 1.0) -> Color:
@@ -69,6 +73,7 @@ class BodyWorld:
                                         visualFramePosition=[0, 0, -0.011], physicsClientId=c)
         self.ground = p.createMultiBody(0, plane_col, plane_vis, [0, 0, 0], physicsClientId=c)
         p.changeDynamics(self.ground, -1, lateralFriction=1.0, physicsClientId=c)
+        p.setCollisionFilterGroupMask(self.ground, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
 
         self.static_ids: dict[str, int] = {}
         self.robots: dict[str, "RobotBase"] = {}
@@ -103,6 +108,7 @@ class BodyWorld:
                                       physicsClientId=c)
             bid = p.createMultiBody(0, col, vis, [float(v) for v in b["center"]],
                                     _quat_yaw(float(b.get("yaw", 0.0))), physicsClientId=c)
+            p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
             self.static_ids[b["id"]] = bid
         return len(boxes)
 
@@ -150,7 +156,7 @@ class BodyWorld:
         col = self._color(operator, color)
         d = Drone(self.client, robot_id, operator, (float(xy[0]), float(xy[1])), col,
                   physics_hz=self.physics_hz, **kw)
-        mask = 0xFFFF & ~ACTOR_GROUP          # kinematic actors never push the drone
+        mask = NOT_ACTORS                     # kinematic actors never push the drone
         for j in range(-1, p.getNumJoints(d.body, physicsClientId=self.client)):
             p.setCollisionFilterGroupMask(d.body, j, 0x1, mask, physicsClientId=self.client)
         self.robots[robot_id] = d
@@ -225,14 +231,18 @@ class BodyWorld:
         col = p.createCollisionShape(p.GEOM_BOX, halfExtents=he, physicsClientId=c) if collide else -1
         vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he, rgbaColor=rgba, physicsClientId=c)
         orn = p.getQuaternionFromEuler([roll, 0, yaw])
-        return p.createMultiBody(0, col, vis, pos, orn, physicsClientId=c)
+        bid = p.createMultiBody(0, col, vis, pos, orn, physicsClientId=c)
+        p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
+        return bid
 
     def _cyl(self, pos, r, h, rgba) -> int:
         c = self.client
         col = p.createCollisionShape(p.GEOM_CYLINDER, radius=r, height=h, physicsClientId=c)
         vis = p.createVisualShape(p.GEOM_CYLINDER, radius=r, length=h, rgbaColor=rgba,
                                   physicsClientId=c)
-        return p.createMultiBody(0, col, vis, pos, physicsClientId=c)
+        bid = p.createMultiBody(0, col, vis, pos, physicsClientId=c)
+        p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
+        return bid
 
     # ------------------------------------------------------------------ kinematic actors
     def _actor_shape(self, kind: str) -> tuple[int, int]:

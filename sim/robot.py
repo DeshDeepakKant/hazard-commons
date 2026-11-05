@@ -48,7 +48,8 @@ class Rover(RobotBase):
         with quiet_stdout():   # the husky URDF spams "No inertial data" warnings
             self.body = p.loadURDF("husky/husky.urdf", [float(xy[0]), float(xy[1]), z0],
                                    p.getQuaternionFromEuler([0, 0, yaw]),
-                                   globalScaling=self.scale, physicsClientId=c)
+                                   globalScaling=self.scale, flags=p.URDF_MERGE_FIXED_LINKS,
+                                   physicsClientId=c)
         names = {p.getJointInfo(self.body, j, physicsClientId=c)[1].decode(): j
                  for j in range(p.getNumJoints(self.body, physicsClientId=c))}
         self.wheel_joints = [names[n] for n in WHEELS]
@@ -86,8 +87,7 @@ class Rover(RobotBase):
             p.setCollisionFilterPair(self.body, self.cargo, j, -1, 0, physicsClientId=c)
         # kinematic SUMO mirrors are teleported each tick: they must not push rovers around
         # (lidar rays still hit them). Both sides of the group/mask test must exclude them.
-        from sim.bodies import ACTOR_GROUP
-        mask = 0xFFFF & ~ACTOR_GROUP
+        from sim.bodies import NOT_ACTORS as mask
         for j in range(-1, p.getNumJoints(self.body, physicsClientId=c)):
             p.setCollisionFilterGroupMask(self.body, j, 0x1, mask, physicsClientId=c)
         p.setCollisionFilterGroupMask(self.cargo, -1, 0x1, mask, physicsClientId=c)

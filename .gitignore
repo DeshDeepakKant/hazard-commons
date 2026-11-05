@@ -1,0 +1,30 @@
+# secrets
+.env
+*.key
+keys/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# node
+node_modules/
+viewer/dist/
+.vercel/
+
+# foundry
+chain/foundry/out/
+chain/foundry/cache/
+chain/foundry/broadcast/*/31337/
+chain/foundry/lib/
+
+# large / generated world data (small exports are committed)
+world/cache/
+world/out/*.osm
+traffic/out/*.xml.gz
+
+# runtime
+logs/runs/
+logs/tmp/

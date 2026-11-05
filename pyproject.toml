@@ -1,0 +1,37 @@
+[project]
+name = "hazard-commons"
+version = "0.1.0"
+description = "Rival delivery robots in a simulated Mumbai share one verified truth about the streets, decided by 0G."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "pybullet",
+  "eclipse-sumo",
+  "libsumo",
+  "traci",
+  "sumolib",
+  "osmnx",
+  "trimesh",
+  "shapely",
+  "mapbox-earcut",
+  "pyproj",
+  "numpy",
+  "scipy",
+  "transforms3d",
+  "fastapi",
+  "uvicorn[standard]",
+  "web3",
+  "eth-account",
+  "openai",
+  "httpx",
+  "pydantic>=2",
+  "pyyaml",
+  "python-dotenv",
+  "pillow",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

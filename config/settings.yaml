@@ -1,0 +1,71 @@
+# Hazard Commons: single source of config. Secrets live in .env, not here.
+
+world:
+  # Bandra West residential core (osmnx 2.x bbox order: west, south, east, north)
+  bbox_wsen: [72.826, 19.052, 72.842, 19.066]
+  epsg: 32643            # UTM 43N
+  # Local frame: metres, x=east, y=north, z=up, origin = bbox centre.
+  # Exact origin_utm is computed by world/fetch_osm.py and written to world/out/meta.json
+  origin_lonlat: [72.834, 19.059]
+  out_dir: world/out
+  collision_road_buffer_m: 30
+  floor_height_m: 3.2
+
+traffic:
+  lefthand: true
+  seed: 42
+  max_vehicles: 150
+  max_pedestrians: 120
+  net_file: traffic/out/bandra.net.xml
+  sumocfg: traffic/sumo.sumocfg
+
+sim:
+  seed: 7
+  physics_hz: 240
+  control_hz: 20
+  state_publish_hz: 10
+  camera: {width: 320, height: 240, fov_deg: 70}
+  lidar: {rays: 31, fov_deg: 120, range_m: 12.0, brake_dist_m: 2.0}
+  rover: {max_speed_mps: 4.0, scale: 0.5}
+  drone: {cruise_alt_m: 40.0, max_speed_mps: 10.0}
+  checkpoint_trigger_dist_m: 18.0
+
+operators:
+  - {id: 0, name: ZipKart,    color: "#ff6b1a", rovers: 3}
+  - {id: 1, name: MinuteMart, color: "#2f8cff", rovers: 3}
+  - {id: 2, name: DashKirana, color: "#22c55e", rovers: 2}
+drones:
+  - {id: D-01, operator: ZipKart}
+  - {id: D-02, operator: MinuteMart}
+
+brain:
+  # Mainnet router is reachable; testnet router (router-api-testnet.integratenetwork.work) was not (2026-11-06).
+  base_url_env: ZG_ROUTER_BASE_URL
+  model_env: ZG_MODEL
+  default_model: 0gm-1.0-35b-a3b
+  trust_mode: private          # X-0G-Provider-Trust-Mode
+  verify_tee: true
+  timeout_s: 15                # exceed => SAFE_STOP
+  max_retries_invalid_json: 1  # then SAFE_STOP
+  max_calls_per_run: 100
+
+storage:
+  indexer_env: ZG_STORAGE_INDEXER
+  sidecar_dir: memory/zg-storage
+  upload_every_n_records: 8
+  local_mirror: logs/index.json
+  explorer: https://storagescan-galileo.0g.ai
+
+chain:
+  chain_id: 16602
+  rpc_env: ZG_RPC_URL
+  explorer: https://chainscan-galileo.0g.ai
+  deployments: chain/deployments/galileo.json
+  report_stake_wei: 100000000000000   # 0.0001 0G
+  confirmations_needed: 1
+  disputes_needed: 1
+  event_poll_s: 2.0
+
+server:
+  host: 127.0.0.1
+  port: 8765

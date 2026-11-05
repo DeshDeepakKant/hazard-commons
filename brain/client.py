@@ -74,9 +74,9 @@ class ZGBrain:
 
     # ------------------------------------------------------------------ internals
     def _fail(self, req: CheckpointRequest, error: str, **kw: Any) -> CheckpointResult:
+        kw.setdefault("model", self.router.model)
         return CheckpointResult(ok=False, checkpoint=req.checkpoint, robot_id=req.robot_id,
-                                client_request_id=f"{req.episode_id}:{req.seq}", error=error,
-                                model=self.router.model, **kw)
+                                client_request_id=f"{req.episode_id}:{req.seq}", error=error, **kw)
 
     def _take_budget(self) -> bool:
         with self._lock:

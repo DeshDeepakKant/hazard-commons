@@ -1,0 +1,18 @@
+{
+  "accident": [
+    "accident_1.jpg",
+    "accident_2.jpg"
+  ],
+  "road_works": [
+    "road_works_1.jpg",
+    "road_works_2.jpg"
+  ],
+  "waterlogging": [
+    "waterlogging_1.jpg",
+    "waterlogging_2.jpg"
+  ],
+  "clear_road": [
+    "clear_road_1.jpg",
+    "clear_road_2.jpg"
+  ]
+}

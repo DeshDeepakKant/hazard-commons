@@ -36,7 +36,7 @@ ACTOR_COLORS: dict[str, Color] = {
     "bus": (0.85, 0.2, 0.15, 1), "pedestrian": (0.85, 0.65, 0.45, 1),
 }
 # collision group for kinematic actors: hit by lidar rays but no contact forces on robots
-ACTOR_GROUP, ACTOR_MASK = 0x4, 0x0
+ACTOR_GROUP, ACTOR_MASK = 0x40, 0x40
 
 
 def hex_to_rgba(h: str, a: float = 1.0) -> Color:
@@ -65,12 +65,10 @@ class BodyWorld:
         # ground: infinite collision plane + a big flat visual slab
         plane_col = p.createCollisionShape(p.GEOM_PLANE, physicsClientId=c)
         plane_vis = p.createVisualShape(p.GEOM_BOX, halfExtents=[3000, 3000, 0.01],
-                                        rgbaColor=[0.55, 0.58, 0.5, 1], physicsClientId=c)
-        self.ground = p.createMultiBody(0, plane_col, plane_vis, [0, 0, -0.011],
-                                        physicsClientId=c)
+                                        rgbaColor=[0.55, 0.58, 0.5, 1],
+                                        visualFramePosition=[0, 0, -0.011], physicsClientId=c)
+        self.ground = p.createMultiBody(0, plane_col, plane_vis, [0, 0, 0], physicsClientId=c)
         p.changeDynamics(self.ground, -1, lateralFriction=1.0, physicsClientId=c)
-        p.resetBasePositionAndOrientation(self.ground, [0, 0, 0], [0, 0, 0, 1],
-                                          physicsClientId=c)
 
         self.static_ids: dict[str, int] = {}
         self.robots: dict[str, "RobotBase"] = {}
@@ -152,6 +150,9 @@ class BodyWorld:
         col = self._color(operator, color)
         d = Drone(self.client, robot_id, operator, (float(xy[0]), float(xy[1])), col,
                   physics_hz=self.physics_hz, **kw)
+        mask = 0xFFFF & ~ACTOR_GROUP          # kinematic actors never push the drone
+        for j in range(-1, p.getNumJoints(d.body, physicsClientId=self.client)):
+            p.setCollisionFilterGroupMask(d.body, j, 0x1, mask, physicsClientId=self.client)
         self.robots[robot_id] = d
         return d
 

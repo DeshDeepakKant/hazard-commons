@@ -14,6 +14,7 @@ import numpy as np
 import pybullet as p
 
 from sim.controllers.planner import Route
+from sim.util import quiet_stdout
 from sim.controllers.pure_pursuit import PurePursuit
 from sim.robot_base import RobotBase
 from sim.schemas import FsmState
@@ -44,9 +45,10 @@ class Rover(RobotBase):
         self.mode = mode
         self.color = color
         z0 = 0.2 * self.scale + 0.02
-        self.body = p.loadURDF("husky/husky.urdf", [float(xy[0]), float(xy[1]), z0],
-                               p.getQuaternionFromEuler([0, 0, yaw]), globalScaling=self.scale,
-                               physicsClientId=c)
+        with quiet_stdout():   # the husky URDF spams "No inertial data" warnings
+            self.body = p.loadURDF("husky/husky.urdf", [float(xy[0]), float(xy[1]), z0],
+                                   p.getQuaternionFromEuler([0, 0, yaw]),
+                                   globalScaling=self.scale, physicsClientId=c)
         names = {p.getJointInfo(self.body, j, physicsClientId=c)[1].decode(): j
                  for j in range(p.getNumJoints(self.body, physicsClientId=c))}
         self.wheel_joints = [names[n] for n in WHEELS]
@@ -82,6 +84,13 @@ class Rover(RobotBase):
         p.setCollisionFilterPair(self.body, self.cargo, -1, -1, 0, physicsClientId=c)
         for j in range(p.getNumJoints(self.body, physicsClientId=c)):
             p.setCollisionFilterPair(self.body, self.cargo, j, -1, 0, physicsClientId=c)
+        # kinematic SUMO mirrors are teleported each tick: they must not push rovers around
+        # (lidar rays still hit them). Both sides of the group/mask test must exclude them.
+        from sim.bodies import ACTOR_GROUP
+        mask = 0xFFFF & ~ACTOR_GROUP
+        for j in range(-1, p.getNumJoints(self.body, physicsClientId=c)):
+            p.setCollisionFilterGroupMask(self.body, j, 0x1, mask, physicsClientId=c)
+        p.setCollisionFilterGroupMask(self.cargo, -1, 0x1, mask, physicsClientId=c)
         self.half_width = max(0.2, (aabb[1][1] - aabb[0][1]) / 2)
         self.lidar = Lidar(c, rays=int(lc.get("rays", 31)), fov_deg=float(lc.get("fov_deg", 120)),
                            range_m=float(lc.get("range_m", 12.0)), height=0.3,

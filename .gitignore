@@ -28,3 +28,6 @@ traffic/out/*.xml.gz
 # runtime
 logs/runs/
 logs/tmp/
+
+# agent worktrees
+.claude/

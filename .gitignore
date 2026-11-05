@@ -23,7 +23,8 @@ chain/foundry/lib/
 # large / generated world data (small exports are committed)
 world/cache/
 world/out/*.osm
-traffic/out/*.xml.gz
+traffic/out/*.xml
+traffic/out/*.trips.xml*
 
 # runtime
 logs/runs/

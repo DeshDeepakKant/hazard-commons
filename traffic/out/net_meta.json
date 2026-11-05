@@ -1,0 +1,13 @@
+{
+ "sumo_net_offset": [
+  -270856.95,
+  -2107728.65
+ ],
+ "proj": "+proj=utm +zone=43 +ellps=WGS84 +datum=WGS84 +units=m +no_defs",
+ "conv_boundary": [
+  246.94,
+  167.02,
+  2102.54,
+  1852.75
+ ]
+}

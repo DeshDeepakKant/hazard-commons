@@ -93,6 +93,7 @@ contract HazardRegistry {
     event ConfigUpdated(uint256 minStake, uint8 confirmsNeeded, uint8 disputesNeeded, uint256 rewardPerConfirm);
     event RewardsFunded(address indexed from, uint256 amount, uint256 pool);
     event PayoutDeferred(address indexed to, uint256 amount);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     // ------------------------------------------------------------------ errors
     error NotOwner();
@@ -151,6 +152,7 @@ contract HazardRegistry {
 
     function transferOwnership(address newOwner) external onlyOwner {
         if (newOwner == address(0)) revert BadInput();
+        emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
 
@@ -208,8 +210,10 @@ contract HazardRegistry {
                 status: Status.Reported,
                 confirms: 0,
                 disputes: 0,
+                // forge-lint: disable-next-line(unsafe-typecast)
                 reportedAt: uint64(block.timestamp),
-                stake: uint128(msg.value),
+                // forge-lint: disable-next-line(unsafe-typecast)
+                stake: uint128(msg.value), // bounded above
                 robotId: robotId,
                 edgeId: edgeId,
                 evidenceRoot: evidenceRoot
@@ -328,7 +332,11 @@ contract HazardRegistry {
 
     function _pay(address to, uint256 amt) internal {
         if (amt == 0) return;
-        (bool ok,) = to.call{value: amt, gas: 30000}("");
+        bool ok;
+        // bounded gas, no returndata copy (return-bomb safe)
+        assembly {
+            ok := call(30000, to, amt, 0, 0, 0, 0)
+        }
         if (!ok) {
             credits[to] += amt;
             emit PayoutDeferred(to, amt);

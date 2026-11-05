@@ -1,0 +1,35 @@
+{
+  "chainId": 31337,
+  "HazardRegistry": {
+    "address": "0xAcEB6aDf8f7a7e68E714F5de5d08744adE719879",
+    "tx": "0x70257fe5b28a64fa764f44081564bf0970fbe747f58574f7dbe53bf20280e2ae",
+    "block": 1
+  },
+  "abi_path": "chain/abi/HazardRegistry.json",
+  "deployer": "0x359f563EE42A093AF6465dd8c2D24D4f88e6ebdb",
+  "operators": {
+    "ZipKart": "0xb347c4A3aA66E72746fcC7CB925EDe90c681dcd9",
+    "MinuteMart": "0x57e5eF031777777e3122362243Af113c0cCBDEC4",
+    "DashKirana": "0x9beD4D26B8Bb6D054DA761c2B7d8e876c7253293"
+  },
+  "operator_txs": {
+    "ZipKart": "0x90ea72f6d35173866fd509b6ca3ad02291112d06c130234eeb101ff30da565ec",
+    "MinuteMart": "0x24ce1218b050bff4951ede1e3acb2baa9f721ec304bc6926f154e3b463e79827",
+    "DashKirana": "0x2d3ae884e958f6280c1e611ef2eed8d35b361b8c486bf088653edd3963a3e841"
+  },
+  "config": {
+    "minStake": 100000000000000,
+    "confirmsNeeded": 1,
+    "disputesNeeded": 1,
+    "rewardPerConfirm": 10000000000000
+  },
+  "gas_used": {
+    "deploy": 2066308,
+    "registerOperator:ZipKart": 94109,
+    "registerOperator:MinuteMart": 77045,
+    "registerOperator:DashKirana": 77045,
+    "fundRewards": 45319
+  },
+  "network": "anvil",
+  "rpc": "http://127.0.0.1:8545"
+}

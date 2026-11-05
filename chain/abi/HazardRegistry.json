@@ -1,0 +1,1009 @@
+[
+ {
+  "type": "constructor",
+  "inputs": [
+   {
+    "name": "_minStake",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "_confirmsNeeded",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "_disputesNeeded",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "_rewardPerConfirm",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "clearHazard",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "evidenceRoot",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "zgRequestId",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "confirmsNeeded",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint8",
+    "internalType": "uint8"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "credits",
+  "inputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "disputesNeeded",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint8",
+    "internalType": "uint8"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "fundRewards",
+  "inputs": [],
+  "outputs": [],
+  "stateMutability": "payable"
+ },
+ {
+  "type": "function",
+  "name": "getDisputers",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address[]",
+    "internalType": "address[]"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "getHazard",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "tuple",
+    "internalType": "struct HazardRegistry.Hazard",
+    "components": [
+     {
+      "name": "reporter",
+      "type": "address",
+      "internalType": "address"
+     },
+     {
+      "name": "hazardType",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "severity",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "passableMask",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "status",
+      "type": "uint8",
+      "internalType": "enum HazardRegistry.Status"
+     },
+     {
+      "name": "confirms",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "disputes",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "reportedAt",
+      "type": "uint64",
+      "internalType": "uint64"
+     },
+     {
+      "name": "stake",
+      "type": "uint128",
+      "internalType": "uint128"
+     },
+     {
+      "name": "robotId",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "edgeId",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "evidenceRoot",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     }
+    ]
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "hasVoted",
+  "inputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool",
+    "internalType": "bool"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "hazardCount",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "isOperator",
+  "inputs": [
+   {
+    "name": "a",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool",
+    "internalType": "bool"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "minStake",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "operatorCount",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "operatorList",
+  "inputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "operatorName",
+  "inputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "owner",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "recordDelivery",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "robotId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "episodeRoot",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "registerOperator",
+  "inputs": [
+   {
+    "name": "signer",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "registerRobots",
+  "inputs": [
+   {
+    "name": "robotIds",
+    "type": "bytes32[]",
+    "internalType": "bytes32[]"
+   },
+   {
+    "name": "kinds",
+    "type": "uint8[]",
+    "internalType": "uint8[]"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "reportHazard",
+  "inputs": [
+   {
+    "name": "robotId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "edgeId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "edgeName",
+    "type": "string",
+    "internalType": "string"
+   },
+   {
+    "name": "hazardType",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "severity",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "passableMask",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "evidenceRoot",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "zgRequestId",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "payable"
+ },
+ {
+  "type": "function",
+  "name": "rewardPerConfirm",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "rewardPool",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "robots",
+  "inputs": [
+   {
+    "name": "",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "operator",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "kind",
+    "type": "uint8",
+    "internalType": "uint8"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "setConfig",
+  "inputs": [
+   {
+    "name": "_minStake",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "_confirmsNeeded",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "_disputesNeeded",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "_rewardPerConfirm",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "transferOwnership",
+  "inputs": [
+   {
+    "name": "newOwner",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "verifyHazard",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "robotId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "confirm",
+    "type": "bool",
+    "internalType": "bool"
+   },
+   {
+    "name": "evidenceRoot",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "zgRequestId",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "withdraw",
+  "inputs": [],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "event",
+  "name": "ConfigUpdated",
+  "inputs": [
+   {
+    "name": "minStake",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "confirmsNeeded",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "disputesNeeded",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "rewardPerConfirm",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "DeliveryRecorded",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "operator",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "robotId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "episodeRoot",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "HazardCleared",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "operator",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "evidenceRoot",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "zgRequestId",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "HazardReported",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "edgeId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "operator",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "robotId",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "edgeName",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   },
+   {
+    "name": "hazardType",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "severity",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "passableMask",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "stake",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "evidenceRoot",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "zgRequestId",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "HazardResolved",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "status",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "reporter",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "payout",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "HazardVerified",
+  "inputs": [
+   {
+    "name": "hazardId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "operator",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "robotId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "confirm",
+    "type": "bool",
+    "indexed": false,
+    "internalType": "bool"
+   },
+   {
+    "name": "confirms",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "disputes",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "evidenceRoot",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "zgRequestId",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "OperatorRegistered",
+  "inputs": [
+   {
+    "name": "operator",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "name",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "OwnershipTransferred",
+  "inputs": [
+   {
+    "name": "previousOwner",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "newOwner",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "PayoutDeferred",
+  "inputs": [
+   {
+    "name": "to",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "RewardsFunded",
+  "inputs": [
+   {
+    "name": "from",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "pool",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "RobotsRegistered",
+  "inputs": [
+   {
+    "name": "operator",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "robotIds",
+    "type": "bytes32[]",
+    "indexed": false,
+    "internalType": "bytes32[]"
+   },
+   {
+    "name": "kinds",
+    "type": "uint8[]",
+    "indexed": false,
+    "internalType": "uint8[]"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "error",
+  "name": "AlreadyOperator",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "AlreadyVoted",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "BadInput",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotOperator",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotOwner",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotYourRobot",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NothingToWithdraw",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "Reentrancy",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "RobotTaken",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "SameOperator",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "StakeTooLow",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "TransferFailed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "UnknownHazard",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "WrongStatus",
+  "inputs": []
+ }
+]

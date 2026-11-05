@@ -1,0 +1,801 @@
+{
+ "dark_stores": [
+  {
+   "id": "DS-ZipKart",
+   "operator": "ZipKart",
+   "building_id": "b357405692",
+   "name": "ZipKart Dark Store",
+   "x": 41.47,
+   "y": 378.11,
+   "entrance_node": "n1468337691",
+   "entrance_xy": [
+    59.99,
+    366.29
+   ],
+   "entrance_edge": "e1468337691-13105749791",
+   "address": "185 RK Patkar Marg (Waterfield Road), Bandra, Mumbai 400050"
+  },
+  {
+   "id": "DS-MinuteMart",
+   "operator": "MinuteMart",
+   "building_id": "b1119898211",
+   "name": "MinuteMart Dark Store",
+   "x": -433.48,
+   "y": -183.97,
+   "entrance_node": "n471581476",
+   "entrance_xy": [
+    -443.62,
+    -175.32
+   ],
+   "entrance_edge": "e471581476-5372158169",
+   "address": "Kripa Vue, 7th Road, Bandra West, Mumbai"
+  },
+  {
+   "id": "DS-DashKirana",
+   "operator": "DashKirana",
+   "building_id": "b1060042508",
+   "name": "DashKirana Dark Store",
+   "x": 254.41,
+   "y": -161.76,
+   "entrance_node": "n1975048942",
+   "entrance_xy": [
+    277.14,
+    -159.49
+   ],
+   "entrance_edge": "e347149014-1975048942",
+   "address": "Manu Smruti, Swami Vivekanand Road, Bandra West, Mumbai"
+  }
+ ],
+ "homes": [
+  {
+   "id": "H-01",
+   "building_id": "b1317387777",
+   "address": "Bldg 1317387777, Nargis Dutt Road, Bandra West, Mumbai",
+   "customer_name": "Neville Rao",
+   "x": -703.16,
+   "y": 586.48,
+   "entrance_node": "n347197290",
+   "entrance_xy": [
+    -699.16,
+    550.89
+   ],
+   "entrance_edge": "e347197290-498661100",
+   "height": 38.4
+  },
+  {
+   "id": "H-02",
+   "building_id": "b357186737",
+   "address": "Casablanca, Zig Zag Road, Bandra West, Mumbai",
+   "customer_name": "Imran Verma",
+   "x": -506.5,
+   "y": 664.7,
+   "entrance_node": "n498661100",
+   "entrance_xy": [
+    -503.89,
+    681.35
+   ],
+   "entrance_edge": "e498661100-4697295583",
+   "height": 12.8
+  },
+  {
+   "id": "H-03",
+   "building_id": "b300191060",
+   "address": "16th Road, Bandra, Mumbai 400050",
+   "customer_name": "Joseph Fernandes",
+   "x": -291.84,
+   "y": 648.24,
+   "entrance_node": "n10198782962",
+   "entrance_xy": [
+    -310.5,
+    644.12
+   ],
+   "entrance_edge": "e471566313-10198782962",
+   "height": 25.6
+  },
+  {
+   "id": "H-04",
+   "building_id": "b1219378977",
+   "address": "Bldg 1219378977, 24th Road (St. Theresa's Road), Bandra West, Mumbai",
+   "customer_name": "Ananya Qureshi",
+   "x": -109.51,
+   "y": 564.81,
+   "entrance_node": "n471570073",
+   "entrance_xy": [
+    -90.87,
+    550.21
+   ],
+   "entrance_edge": "e471566305-471570073",
+   "height": 19.2
+  },
+  {
+   "id": "H-05",
+   "building_id": "b791813917",
+   "address": "Bldg 791813917, Linking Road, Bandra West, Mumbai",
+   "customer_name": "Vivaan Joshi",
+   "x": 43.57,
+   "y": 660.19,
+   "entrance_node": "n471566319",
+   "entrance_xy": [
+    59.64,
+    665.43
+   ],
+   "entrance_edge": "e2629418497-471566319",
+   "height": 38.4
+  },
+  {
+   "id": "H-06",
+   "building_id": "b1333514176",
+   "address": "Bldg 1333514176, 36th Road, Bandra West, Mumbai",
+   "customer_name": "Sneha Rodrigues",
+   "x": 298.48,
+   "y": 615.02,
+   "entrance_node": "n2244797303",
+   "entrance_xy": [
+    306.93,
+    595.74
+   ],
+   "entrance_edge": "e2244797268-2244797303",
+   "height": 28.8
+  },
+  {
+   "id": "H-07",
+   "building_id": "b357403057",
+   "address": "Bldg 357403057, 3rd Road, Bandra West, Mumbai",
+   "customer_name": "Vivaan Kapoor",
+   "x": 552.35,
+   "y": 687.24,
+   "entrance_node": "n3803645207",
+   "entrance_xy": [
+    540.02,
+    696.53
+   ],
+   "entrance_edge": "e3803645185-3803645207",
+   "height": 16.0
+  },
+  {
+   "id": "H-08",
+   "building_id": "b207210610",
+   "address": "213 Pali Market Road, Bandra West, Mumbai 400050",
+   "customer_name": "Aditya Chatterjee",
+   "x": -640.33,
+   "y": 327.66,
+   "entrance_node": "n2173707418",
+   "entrance_xy": [
+    -646.9,
+    346.63
+   ],
+   "entrance_edge": "e2173685586-2173707418",
+   "height": 25.6
+  },
+  {
+   "id": "H-09",
+   "building_id": "b286430579",
+   "address": "Isabella, Dr. BR Ambedkar Road, Bandra West, Mumbai",
+   "customer_name": "Kavya Mehta",
+   "x": -459.29,
+   "y": 463.6,
+   "entrance_node": "n13506288266",
+   "entrance_xy": [
+    -450.57,
+    463.87
+   ],
+   "entrance_edge": "e2244797217-13506288266",
+   "height": 9.6
+  },
+  {
+   "id": "H-10",
+   "building_id": "b300191024",
+   "address": "14th Road, Bandra, Mumbai 400050",
+   "customer_name": "Nikhil Qureshi",
+   "x": -194.88,
+   "y": 394.1,
+   "entrance_node": "n347193270",
+   "entrance_xy": [
+    -200.55,
+    368.38
+   ],
+   "entrance_edge": "e347193221-347193270",
+   "height": 22.4
+  },
+  {
+   "id": "H-11",
+   "building_id": "b357405737",
+   "address": "Bldg 357405737, Swami Vivekanand Road, Bandra West, Mumbai",
+   "customer_name": "Diya Kulkarni",
+   "x": 378.39,
+   "y": 461.39,
+   "entrance_node": "n1936355375",
+   "entrance_xy": [
+    353.3,
+    467.37
+   ],
+   "entrance_edge": "e1936355375-1936355368",
+   "height": 12.8
+  },
+  {
+   "id": "H-12",
+   "building_id": "b356258995",
+   "address": "Kakad Bhavan, 30th Cross Road, Bandra West, Mumbai",
+   "customer_name": "Kavya Agarwal",
+   "x": 451.62,
+   "y": 300.75,
+   "entrance_node": "n11072733820",
+   "entrance_xy": [
+    461.25,
+    280.25
+   ],
+   "entrance_edge": "e1575062272-11072733820",
+   "height": 22.4
+  },
+  {
+   "id": "H-13",
+   "building_id": "b357320103",
+   "address": "Rustomjee's Buena Vista, St. Alexius Road, Bandra West, Mumbai",
+   "customer_name": "Siddharth Deshpande",
+   "x": -563.97,
+   "y": 173.88,
+   "entrance_node": "n347115647",
+   "entrance_xy": [
+    -545.31,
+    173.22
+   ],
+   "entrance_edge": "e5332431181-347115647",
+   "height": 32.0
+  },
+  {
+   "id": "H-14",
+   "building_id": "b255369895",
+   "address": "Grace Heritage, Padmashree Mohammed Rafi Marg (16th Road), Bandra West, Mumbai",
+   "customer_name": "Neha Patel",
+   "x": -385.64,
+   "y": 245.51,
+   "entrance_node": "n2173585387",
+   "entrance_xy": [
+    -364.72,
+    240.69
+   ],
+   "entrance_edge": "e2173585363-2173585387",
+   "height": 16.0
+  },
+  {
+   "id": "H-15",
+   "building_id": "b357320082",
+   "address": "23rd Road, Bandra, Mumbai 400050",
+   "customer_name": "Maria Qureshi",
+   "x": -250.77,
+   "y": 160.25,
+   "entrance_node": "n923872559",
+   "entrance_xy": [
+    -232.63,
+    152.24
+   ],
+   "entrance_edge": "e923872557-923872559",
+   "height": 38.4
+  },
+  {
+   "id": "H-16",
+   "building_id": "b438253985",
+   "address": "25th Road, Bandra, Mumbai 400050",
+   "customer_name": "Kabir Rodrigues",
+   "x": -71.5,
+   "y": 193.35,
+   "entrance_node": "n471584533",
+   "entrance_xy": [
+    -55.6,
+    196.75
+   ],
+   "entrance_edge": "e347180846-471584533",
+   "height": 22.4
+  },
+  {
+   "id": "H-17",
+   "building_id": "b357364249",
+   "address": "223 28th Road, Bandra, Mumbai 400050",
+   "customer_name": "Aarav Shaikh",
+   "x": 70.9,
+   "y": 149.84,
+   "entrance_node": "n347178712",
+   "entrance_xy": [
+    78.85,
+    121.2
+   ],
+   "entrance_edge": "e347178709-347178712",
+   "height": 12.8
+  },
+  {
+   "id": "H-18",
+   "building_id": "b357364287",
+   "address": "228 Vithalbhai Patel Road, Bandra, Mumbai 400050",
+   "customer_name": "Rohan Pawar",
+   "x": 211.19,
+   "y": 203.3,
+   "entrance_node": "n347178799",
+   "entrance_xy": [
+    216.99,
+    222.88
+   ],
+   "entrance_edge": "e347178715-347178799",
+   "height": 25.6
+  },
+  {
+   "id": "H-19",
+   "building_id": "b356259042",
+   "address": "Bldg 356259042, 38th Road, Bandra West, Mumbai",
+   "customer_name": "Tanvi Rodrigues",
+   "x": 454.09,
+   "y": 120.08,
+   "entrance_node": "n13063238716",
+   "entrance_xy": [
+    475.52,
+    103.21
+   ],
+   "entrance_edge": "e6428886626-13063238716",
+   "height": 32.0
+  },
+  {
+   "id": "H-20",
+   "building_id": "b255370419",
+   "address": "Master Vinayak Road (Perry Road), Bandra, Mumbai 400050",
+   "customer_name": "Rahul Sharma",
+   "x": -683.41,
+   "y": 67.92,
+   "entrance_node": "n10882715565",
+   "entrance_xy": [
+    -697.88,
+    77.24
+   ],
+   "entrance_edge": "e10882715565-471586471",
+   "height": 25.6
+  },
+  {
+   "id": "H-21",
+   "building_id": "b545621126",
+   "address": "St. Anthony Road, Mumbai 400050",
+   "customer_name": "Amit Sharma",
+   "x": -549.01,
+   "y": -84.07,
+   "entrance_node": "n471587920",
+   "entrance_xy": [
+    -556.77,
+    -66.94
+   ],
+   "entrance_edge": "e471587920-10882727462",
+   "height": 6.4
+  },
+  {
+   "id": "H-22",
+   "building_id": "b255365565",
+   "address": "Turner Road (Gurunanak Marg), Bandra, Mumbai 400050",
+   "customer_name": "Aditya Rodrigues",
+   "x": -437.87,
+   "y": 41.84,
+   "entrance_node": "n10882715558",
+   "entrance_xy": [
+    -418.98,
+    62.48
+   ],
+   "entrance_edge": "e471589564-10882715558",
+   "height": 35.2
+  },
+  {
+   "id": "H-23",
+   "building_id": "b255365541",
+   "address": "1st Road, Bandra, Mumbai 400050",
+   "customer_name": "Sanjay Mehta",
+   "x": -227.8,
+   "y": -13.16,
+   "entrance_node": "n471591704",
+   "entrance_xy": [
+    -221.67,
+    -29.83
+   ],
+   "entrance_edge": "e347172870-471591704",
+   "height": 16.0
+  },
+  {
+   "id": "H-24",
+   "building_id": "b356452682",
+   "address": "Turner Road (Gurunanak Marg), Bandra, Mumbai 400050",
+   "customer_name": "Amit Patil",
+   "x": 32.8,
+   "y": 1.08,
+   "entrance_node": "n471591707",
+   "entrance_xy": [
+    14.33,
+    12.34
+   ],
+   "entrance_edge": "e471591705-471591707",
+   "height": 22.4
+  },
+  {
+   "id": "H-25",
+   "building_id": "b356450736",
+   "address": "Vishnu-Dham, Gurunanak Marg, Bandra West, Mumbai",
+   "customer_name": "Sana Pinto",
+   "x": 205.34,
+   "y": 26.61,
+   "entrance_node": "n6280229504",
+   "entrance_xy": [
+    198.91,
+    41.64
+   ],
+   "entrance_edge": "e6280229504-5353822017",
+   "height": 19.2
+  },
+  {
+   "id": "H-26",
+   "building_id": "b783730703",
+   "address": "Gopal Mansion, Gurunanak Marg, Bandra West, Mumbai",
+   "customer_name": "Nikhil Sayed",
+   "x": 376.89,
+   "y": -57.05,
+   "entrance_node": "n13994961554",
+   "entrance_xy": [
+    402.98,
+    -77.36
+   ],
+   "entrance_edge": "e13994961552-13994961554",
+   "height": 22.4
+  },
+  {
+   "id": "H-27",
+   "building_id": "b356259032",
+   "address": "R. B. Vasudevrao Anant Bambardekar Road, Mumbai",
+   "customer_name": "Gauri Pawar",
+   "x": 537.19,
+   "y": -21.92,
+   "entrance_node": "n4362576436",
+   "entrance_xy": [
+    519.97,
+    -16.2
+   ],
+   "entrance_edge": "e4362576434-4362576436",
+   "height": 19.2
+  },
+  {
+   "id": "H-28",
+   "building_id": "b545621120",
+   "address": "Andora Apartments, St. Leo Road, Bandra West, Mumbai",
+   "customer_name": "Meera Shah",
+   "x": -671.11,
+   "y": -159.23,
+   "entrance_node": "n471586471",
+   "entrance_xy": [
+    -689.73,
+    -144.11
+   ],
+   "entrance_edge": "e10882715565-471586471",
+   "height": 22.4
+  },
+  {
+   "id": "H-29",
+   "building_id": "b255362119",
+   "address": "9th Road, Bandra, Mumbai 400050",
+   "customer_name": "Sana Nair",
+   "x": -290.11,
+   "y": -272.39,
+   "entrance_node": "n706122760",
+   "entrance_xy": [
+    -303.12,
+    -258.81
+   ],
+   "entrance_edge": "e706122760-706122775",
+   "height": 16.0
+  },
+  {
+   "id": "H-30",
+   "building_id": "b356467207",
+   "address": "Elco Arcade Residential Apartments, Hill Road, Bandra West, Mumbai",
+   "customer_name": "Sana Kapoor",
+   "x": -99.1,
+   "y": -295.81,
+   "entrance_node": "n13519173573",
+   "entrance_xy": [
+    -81.3,
+    -305.77
+   ],
+   "entrance_edge": "e13519173573-13519173576",
+   "height": 25.6
+  },
+  {
+   "id": "H-31",
+   "building_id": "b356452678",
+   "address": "4th Road, Bandra, Mumbai 400050",
+   "customer_name": "Diya Shaikh",
+   "x": -97.26,
+   "y": -112.24,
+   "entrance_node": "n13529118173",
+   "entrance_xy": [
+    -92.09,
+    -136.38
+   ],
+   "entrance_edge": "e471591706-13529118173",
+   "height": 22.4
+  },
+  {
+   "id": "H-32",
+   "building_id": "b360291644",
+   "address": "Rizvi House, St. Martin's Road, Bandra West, Mumbai",
+   "customer_name": "Rohan Khanna",
+   "x": 107.17,
+   "y": -296.13,
+   "entrance_node": "n346633199",
+   "entrance_xy": [
+    131.64,
+    -289.94
+   ],
+   "entrance_edge": "e346633199-2247989261",
+   "height": 22.4
+  },
+  {
+   "id": "H-33",
+   "building_id": "b255365477",
+   "address": "D.T.T.C. Telephone Exchange, St. Martin's Road, Bandra West, Mumbai",
+   "customer_name": "Meera Gupta",
+   "x": 114.34,
+   "y": -118.61,
+   "entrance_node": "n347175185",
+   "entrance_xy": [
+    133.98,
+    -125.26
+   ],
+   "entrance_edge": "e347175185-2247989261",
+   "height": 28.8
+  },
+  {
+   "id": "H-34",
+   "building_id": "b356258957",
+   "address": "MK Chambers, S. G. Joshi Marg, Bandra West, Mumbai",
+   "customer_name": "Rohan Nair",
+   "x": 519.5,
+   "y": -223.53,
+   "entrance_node": "n2629418467",
+   "entrance_xy": [
+    513.1,
+    -200.9
+   ],
+   "entrance_edge": "e2629418467-13063238673",
+   "height": 35.2
+  },
+  {
+   "id": "H-35",
+   "building_id": "b255363750",
+   "address": "127-A Somnath Lane, Mumbai",
+   "customer_name": "Kabir Shaikh",
+   "x": -664.9,
+   "y": -372.32,
+   "entrance_node": "n13082053973",
+   "entrance_xy": [
+    -655.43,
+    -381.33
+   ],
+   "entrance_edge": "e347168989-13082053973",
+   "height": 19.2
+  },
+  {
+   "id": "H-36",
+   "building_id": "b360291672",
+   "address": "Manuel Gonsalves Road, Mumbai 400050",
+   "customer_name": "Ananya Deshpande",
+   "x": -463.66,
+   "y": -393.31,
+   "entrance_node": "n4364457173",
+   "entrance_xy": [
+    -494.36,
+    -386.46
+   ],
+   "entrance_edge": "e4364457173-4364457175",
+   "height": 25.6
+  },
+  {
+   "id": "H-37",
+   "building_id": "b356425976",
+   "address": "Hilla Apartments, Hill Road, Bandra West, Mumbai",
+   "customer_name": "Aditya Shah",
+   "x": -242.12,
+   "y": -441.98,
+   "entrance_node": "n347147268",
+   "entrance_xy": [
+    -262.53,
+    -449.86
+   ],
+   "entrance_edge": "e347147268-9681688986",
+   "height": 19.2
+  },
+  {
+   "id": "H-38",
+   "building_id": "b1225441914",
+   "address": "Motiwalla Building, D'monte Street, Bandra West, Mumbai",
+   "customer_name": "Rahul Mehta",
+   "x": -20.95,
+   "y": -490.21,
+   "entrance_node": "n347146492",
+   "entrance_xy": [
+    -26.04,
+    -482.86
+   ],
+   "entrance_edge": "e347146492-7244551186",
+   "height": 19.2
+  },
+  {
+   "id": "H-39",
+   "building_id": "b356450758",
+   "address": "Viraj, Jarimari Road, Bandra West, Mumbai",
+   "customer_name": "Sanjay Pereira",
+   "x": 269.97,
+   "y": -367.23,
+   "entrance_node": "n4362576439",
+   "entrance_xy": [
+    246.61,
+    -378.52
+   ],
+   "entrance_edge": "e347149014-4362576439",
+   "height": 9.6
+  },
+  {
+   "id": "H-40",
+   "building_id": "b357403027",
+   "address": "Bldg 357403027, SG Joshi Marg, Bandra West, Mumbai",
+   "customer_name": "Priya D'Souza",
+   "x": 415.3,
+   "y": -382.97,
+   "entrance_node": "n2247989252",
+   "entrance_xy": [
+    389.28,
+    -376.52
+   ],
+   "entrance_edge": "e2247989252-5342165314",
+   "height": 22.4
+  },
+  {
+   "id": "H-41",
+   "building_id": "b1414318017",
+   "address": "Bldg 1414318017, Veronica Road, Bandra West, Mumbai",
+   "customer_name": "Tanvi Gupta",
+   "x": -677.65,
+   "y": -679.41,
+   "entrance_node": "n346621506",
+   "entrance_xy": [
+    -666.54,
+    -686.5
+   ],
+   "entrance_edge": "e346621506-357797396",
+   "height": 3.2
+  },
+  {
+   "id": "H-42",
+   "building_id": "b357472409",
+   "address": "Bldg 357472409, Waroda Road, Bandra West, Mumbai",
+   "customer_name": "Aditya Rao",
+   "x": -580.38,
+   "y": -512.35,
+   "entrance_node": "n346621512",
+   "entrance_xy": [
+    -580.39,
+    -534.94
+   ],
+   "entrance_edge": "e346621512-13067310092",
+   "height": 16.0
+  },
+  {
+   "id": "H-43",
+   "building_id": "b913464171",
+   "address": "Bldg 913464171, Chapel Road, Bandra West, Mumbai",
+   "customer_name": "Sanjay Bhatt",
+   "x": -520.3,
+   "y": -663.77,
+   "entrance_node": "n347182460",
+   "entrance_xy": [
+    -506.36,
+    -636.1
+   ],
+   "entrance_edge": "e346620827-347182460",
+   "height": 9.6
+  },
+  {
+   "id": "H-44",
+   "building_id": "b636625097",
+   "address": "4 Chapel Road, Mumbai 400050",
+   "customer_name": "Arjun Malhotra",
+   "x": -386.24,
+   "y": -590.82,
+   "entrance_node": "n346620827",
+   "entrance_xy": [
+    -380.06,
+    -596.77
+   ],
+   "entrance_edge": "e346620827-347182460",
+   "height": 9.6
+  },
+  {
+   "id": "H-45",
+   "building_id": "b791877623",
+   "address": "Bldg 791877623, K C Marg, Bandra West, Mumbai",
+   "customer_name": "Neville Sen",
+   "x": -70.3,
+   "y": -669.45,
+   "entrance_node": "n347147042",
+   "entrance_xy": [
+    -61.14,
+    -634.22
+   ],
+   "entrance_edge": "e346620841-347147042",
+   "height": 19.2
+  },
+  {
+   "id": "H-46",
+   "building_id": "b791877618",
+   "address": "Bldg 791877618, K C Marg, Bandra West, Mumbai",
+   "customer_name": "Vikram Khan",
+   "x": 106.65,
+   "y": -689.13,
+   "entrance_node": "n6950683786",
+   "entrance_xy": [
+    121.95,
+    -693.3
+   ],
+   "entrance_edge": "e4362555758-6950683786",
+   "height": 19.2
+  },
+  {
+   "id": "H-47",
+   "building_id": "b791877586",
+   "address": "Bldg 791877586, D'monte Street, Bandra West, Mumbai",
+   "customer_name": "Vivaan Mehta",
+   "x": 161.04,
+   "y": -536.81,
+   "entrance_node": "n4362560825",
+   "entrance_xy": [
+    165.53,
+    -524.48
+   ],
+   "entrance_edge": "e347146508-4362560825",
+   "height": 38.4
+  },
+  {
+   "id": "H-48",
+   "building_id": "b434887920",
+   "address": "Bldg 434887920, Hill Road, Bandra West, Mumbai",
+   "customer_name": "Vikram Malhotra",
+   "x": 340.01,
+   "y": -520.7,
+   "entrance_node": "n9681688995",
+   "entrance_xy": [
+    334.31,
+    -506.08
+   ],
+   "entrance_edge": "e9739950372-9681688995",
+   "height": 35.2
+  },
+  {
+   "id": "H-49",
+   "building_id": "b434887939",
+   "address": "Bldg 434887939, Swami Vivekanand Road, Bandra West, Mumbai",
+   "customer_name": "Arjun Patil",
+   "x": 391.69,
+   "y": -654.25,
+   "entrance_node": "n296362012",
+   "entrance_xy": [
+    415.62,
+    -694.88
+   ],
+   "entrance_edge": "e296362012-11375504014",
+   "height": 22.4
+  },
+  {
+   "id": "H-50",
+   "building_id": "b1060042513",
+   "address": "Sayba Emerald, Bandra Station Road, Bandra West, Mumbai",
+   "customer_name": "Nikhil Pawar",
+   "x": 542.66,
+   "y": -506.19,
+   "entrance_node": "n8589026517",
+   "entrance_xy": [
+    530.76,
+    -525.82
+   ],
+   "entrance_edge": "e8589026517-10257903078",
+   "height": 19.2
+  }
+ ]
+}

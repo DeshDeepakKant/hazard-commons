@@ -1,0 +1,19 @@
+{
+  "epsg": 32643,
+  "origin_lonlat": [
+    72.834,
+    19.059
+  ],
+  "origin_utm": [
+    272066.1955488995,
+    2108763.0331085664
+  ],
+  "bbox_wsen": [
+    72.826,
+    19.052,
+    72.842,
+    19.066
+  ],
+  "sumo_net_offset": null,
+  "attribution": "© OpenStreetMap contributors"
+}

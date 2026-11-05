@@ -8,8 +8,8 @@ Metres, x = east, y = north, z = up, origin = bbox centre projected to EPSG:3264
 The viewer maps `three = (x, z, -y)`. `buildings.glb` is exported already in glTF Y-up (vertex = `(x, height, -y)`).
 
 ## world/out/ (WS1 writes, everyone reads)
-- `meta.json`: `{"epsg":32643, "origin_lonlat":[lon,lat], "origin_utm":[E,N], "bbox_wsen":[w,s,e,n], "sumo_net_offset":[ox,oy]|null, "attribution":"© OpenStreetMap contributors"}`. WS2 fills `sumo_net_offset` after netconvert.
-- `map.osm`: the raw OSM XML for the bbox. **Single input for both WS1 and WS2 (netconvert).**
+- `meta.json`: `{"epsg":32643, "origin_lonlat":[lon,lat], "origin_utm":[E,N], "bbox_wsen":[w,s,e,n], "sumo_net_offset":[ox,oy]|null, "attribution":"© OpenStreetMap contributors"}`. `origin_utm` MUST equal the EPSG:32643 projection of `settings.world.origin_lonlat` (not recomputed from data). `sumo_net_offset` stays null here: WS2 writes `traffic/out/net_meta.json` `{"sumo_net_offset":[ox,oy]}` and `common/frame.meta()` merges it.
+- Raw OSM input (shared, git-ignored): `world/cache/map.osm` (5 MB Overpass extract of the bbox, fetched 2026-11-06). **Single input for both WS1 and WS2 (netconvert).** Scripts take `--osm PATH` defaulting to `world/cache/map.osm`.
 - `buildings.glb`: extruded footprints, one mesh per building; node name = building id; vertex colours by use.
 - `buildings.json`: `[{"id":"b123", "osm_id":..., "use":"residential|commercial|other", "height":m, "height_source":"osm_height|levels|pseudo", "centroid":[x,y], "footprint":[[x,y],...], "name":str|null, "address":str|null}]`
 - `collision/boxes.json`: `[{"id":"b123", "center":[x,y,z], "half_extents":[hx,hy,hz], "yaw":rad}]`: oriented boxes for PyBullet (buildings within 30 m of roads).

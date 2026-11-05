@@ -33,14 +33,20 @@ def _transformers():
 
 @functools.lru_cache(maxsize=1)
 def meta() -> dict:
-    p = path(settings()["world"]["out_dir"]) / "meta.json"
-    if p.exists():
-        return json.loads(p.read_text())
+    # origin_utm is ALWAYS the projection of settings origin_lonlat (WS1 writes the same value).
     lon, lat = settings()["world"]["origin_lonlat"]
     e, n = _transformers()[0].transform(lon, lat)
-    return {"epsg": settings()["world"]["epsg"], "origin_lonlat": [lon, lat],
-            "origin_utm": [e, n], "bbox_wsen": settings()["world"]["bbox_wsen"],
-            "sumo_net_offset": None}
+    m = {"epsg": settings()["world"]["epsg"], "origin_lonlat": [lon, lat],
+         "origin_utm": [e, n], "bbox_wsen": settings()["world"]["bbox_wsen"],
+         "sumo_net_offset": None}
+    p = path(settings()["world"]["out_dir"]) / "meta.json"
+    if p.exists():
+        m.update({k: v for k, v in json.loads(p.read_text()).items() if v is not None})
+    # WS2 writes the SUMO netOffset here (kept separate so WS1/WS2 never edit the same file)
+    q = path("traffic/out/net_meta.json")
+    if m.get("sumo_net_offset") is None and q.exists():
+        m["sumo_net_offset"] = json.loads(q.read_text()).get("sumo_net_offset")
+    return m
 
 
 def lonlat_to_local(lon: float, lat: float) -> tuple[float, float]:

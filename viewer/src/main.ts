@@ -214,11 +214,12 @@ async function boot(): Promise<void> {
   app.querySelector(".loading")!.remove();
 
   // ---------------------------------------------------------------- frame loop
-  const clock = new THREE.Clock();
-  let slow = 0;
+  let slow = 0, prev = performance.now();
   const loop = () => {
-    const dt = Math.min(0.1, clock.getDelta());
-    const now = clock.elapsedTime;
+    const nowMs = performance.now();
+    const dt = Math.min(0.1, (nowMs - prev) / 1000);
+    prev = nowMs;
+    const now = nowMs / 1000;
     if (replay) { replay.tick(dt); timeline!.update(); }
     const t = replay ? replay.time : live!.renderTime();
     const s = buffer.sample(t);

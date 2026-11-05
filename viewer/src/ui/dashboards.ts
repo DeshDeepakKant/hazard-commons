@@ -45,7 +45,7 @@ export class Dashboards {
         <div class="op-head"><span class="chip"></span><b>${esc(op)}</b><span class="dec">${s.decisions} 0G calls${s.errors ? ` · <span class="err">${s.errors} safe-stops</span>` : ""}</span></div>
         <div class="kpis">
           <div><b>${s.delivered}</b><span>delivered</span></div>
-          <div><b>${s.inProgress}</b><span>in progress</span></div>
+          <div><b>${s.inProgress}</b><span>active</span></div>
           <div><b>${s.reports}</b><span>reports</span></div>
           <div><b class="good">${s.confirmed}</b><span>confirmed</span></div>
           <div><b class="bad">${s.rejected}</b><span>rejected</span></div>

@@ -27,8 +27,8 @@ export class SceneView {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMapping = THREE.NeutralToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     host.appendChild(this.renderer.domElement);
     this.labels = new CSS2DRenderer();
     this.labels.domElement.className = "labels-layer";
@@ -43,7 +43,7 @@ export class SceneView {
     this.scene.fog = new THREE.Fog(bg, this.extent * 0.9, this.extent * 2.6);
 
     const hemi = new THREE.HemisphereLight("#c7d4f0", "#1a2130", 1.5);
-    const sun = new THREE.DirectionalLight("#ffe4c2", 2.4);
+    const sun = new THREE.DirectionalLight("#fff1de", 2.3);
     sun.position.set(-600, 900, 400);
     const rim = new THREE.DirectionalLight("#6d8dff", 0.6);
     rim.position.set(700, 300, -600);

@@ -74,9 +74,9 @@ export async function loadWorldData(onStatus: (s: string) => void): Promise<Worl
 
 // ---------------------------------------------------------------- buildings
 const USE_COLORS: Record<string, string[]> = {
-  residential: ["#d9d4cc", "#cfc8bd", "#e2ddd3", "#c8c1b8", "#d6cfc4"],
-  commercial: ["#b9c4d3", "#a9b6c8", "#c3cddb", "#9fb0c6"],
-  other: ["#c9ccd1", "#bfc3c9", "#d2d4d8"],
+  residential: ["#ebe7e0", "#e2ddd5", "#f1eee8", "#d9d4cc", "#e8e2d6"],
+  commercial: ["#c9d3e2", "#b8c5d8", "#d3dbe7", "#aebcd2"],
+  other: ["#d9dce1", "#cfd3d9", "#e2e4e8"],
 };
 
 function hash(s: string): number {
@@ -235,9 +235,9 @@ export function buildRoads(w: WorldData): THREE.Group {
   const g = new THREE.Group();
   g.name = "roads";
   const layers: { filter: (r: Road) => boolean; color: string; y: number; widen: number }[] = [
-    { filter: (r) => r.kind !== "drive", color: "#2b3343", y: 0.04, widen: 0 },
-    { filter: (r) => r.kind === "drive", color: "#3a4356", y: 0.06, widen: 2.2 },  // kerb / sidewalk band
-    { filter: (r) => r.kind === "drive", color: "#232a37", y: 0.08, widen: 0 },
+    { filter: (r) => r.kind !== "drive", color: "#344055", y: 0.04, widen: 0 },
+    { filter: (r) => r.kind === "drive", color: "#4a556b", y: 0.06, widen: 2.2 },  // kerb / sidewalk band
+    { filter: (r) => r.kind === "drive", color: "#2a3242", y: 0.08, widen: 0 },
   ];
   for (const L of layers) {
     const pos: number[] = [], idx: number[] = [];

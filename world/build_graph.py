@@ -83,7 +83,7 @@ def build(osm_path) -> dict:
         osm_ids = sorted(set(int(x) for x in osm_ids)) if isinstance(osm_ids, list) else int(osm_ids)
         name = d.get("name")
         if isinstance(name, list):
-            name = " / ".join(dict.fromkeys(str(x) for x in name))
+            name = " / ".join(sorted(set(str(x) for x in name)))  # osmnx list order is not stable
         eid = f"e{u}-{v}" + (f"-{k}" if k else "")
         edges.append({"id": eid, "from": f"n{u}", "to": f"n{v}", "length": round(length, 2),
                       "lanes": _lanes(d, hw), "name": name if isinstance(name, str) else None,

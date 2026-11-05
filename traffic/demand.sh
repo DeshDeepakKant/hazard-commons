@@ -53,18 +53,18 @@ print(sys.argv[2], s.count("<vehicle "), "vehicles")
 PYEOF
 }
 
-gen car        car           passenger  4.0  0
-gen motorcycle motorcycle    motorcycle 5.0  1
-gen auto       auto_rickshaw passenger  5.5  2
-gen bus        bus           bus        30   3
+gen car        car           passenger  5.0  0
+gen motorcycle motorcycle    motorcycle 6.0  1
+gen auto       auto_rickshaw passenger  6.5  2
+gen bus        bus           bus        36   3
 
 # pedestrians: shorter walks, anywhere (no fringe bias)
 PP=$("$PY" -c "print(4.0 / $SCALE)")
 "$PY" "$RT" -n "$NET" --seed $((SEED + 4)) -b 0 -e "$END" -p "$PP" \
   --pedestrians --max-distance 900 --min-distance 150 --validate \
   --trip-attributes 'type="pedestrian"' --additional-files "$ADD" \
-  --prefix "ped_" -o "$TMP/ped.trips.xml" >/dev/null
-"$PY" - "$TMP/ped.trips.xml" "$OUT/ped.rou.xml.gz" <<'PYEOF'
+  --prefix "ped_" -o "$TMP/ped.trips.xml" -r "$TMP/ped.rou.xml" >/dev/null
+"$PY" - "$TMP/ped.rou.xml" "$OUT/ped.rou.xml.gz" <<'PYEOF'
 import gzip, re, sys
 s = open(sys.argv[1]).read()
 s = re.sub(r"\s*<vType\b[^>]*/>", "", s)

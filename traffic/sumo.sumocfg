@@ -15,7 +15,7 @@
         <time-to-teleport value="90"/>
         <time-to-teleport.disconnected value="1"/>
         <max-depart-delay value="30"/>
-        <max-num-vehicles value="160"/>
+        <max-num-vehicles value="180"/>
         <collision.action value="warn"/>
         <collision.check-junctions value="false"/>
         <pedestrian.model value="striping"/>

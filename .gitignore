@@ -29,6 +29,7 @@ traffic/out/*.trips.xml*
 # runtime
 logs/runs/
 logs/tmp/
+logs/*.log
 
 # agent worktrees
 .claude/

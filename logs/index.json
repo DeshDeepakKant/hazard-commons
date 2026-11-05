@@ -1,0 +1,191 @@
+{
+ "batches": [
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793913674-R-04"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "53c65dd16b249fbdf81a3abde5dfea8ba78194576e28537cd2e8c73d562a6ffb",
+   "local_path": "logs/runs/run-1793913674/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "fadbde7b897211abd2b6a14b55bc665f9af332f80997b385f596d34ef5a2c66b"
+   ],
+   "robot_id": "R-04",
+   "root_hash": null,
+   "run_id": "run-1793913674",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793913676.1661952,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793913693-R-04"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "c6adbe21cfb4740f303771d5be16d6ecb3152586bfb4d5a00962c3f57dc237b0",
+   "local_path": "logs/runs/run-1793913693/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "cc10f47400e30b08a527d20567128abcce771c5be735f62ea911f9fa13354368"
+   ],
+   "robot_id": "R-04",
+   "root_hash": null,
+   "run_id": "run-1793913693",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793913695.0059788,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H2"
+   ],
+   "episode_ids": [
+    "run-1793913695-R-01"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "2b4e7dc783debb77e537494c1c8516abfc9d5dcdeffff159254c41db6a5cca71",
+   "local_path": "logs/runs/run-1793913695/episodes/R-01/batch-0.json",
+   "operator": "ZipKart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "ec6e6aaf26bd5ed8fbafb75f9cae9b7bf506d240e267dddc458fe3e43d9f6b1f"
+   ],
+   "robot_id": "R-01",
+   "root_hash": null,
+   "run_id": "run-1793913695",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793913696.6555798,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793913785-R-04"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "0dcac7ce3b8d6bd07d5a1046c857dbc35f0f65475d91d7db3d1ec56ba09f2e47",
+   "local_path": "logs/runs/run-1793913785/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "0a1de419eec737d2141c72d96f3f8e072a1cbda1ead85215561ac6af48256543"
+   ],
+   "robot_id": "R-04",
+   "root_hash": null,
+   "run_id": "run-1793913785",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793913788.5185113,
+   "zg_request_ids": []
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793913858-R-04"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "ae623511ad422e3f5a136672af9caf77377198a2300af09858f73ae1ffb9f6b4",
+   "local_path": "logs/runs/run-1793913858/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "696125b2c534a3d858df788032a2fa0a46e7a60686bc4b02904b11fe9dbd67c5"
+   ],
+   "robot_id": "R-04",
+   "root_hash": null,
+   "run_id": "run-1793913858",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793913860.3269794,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H2"
+   ],
+   "episode_ids": [
+    "run-1793913860-R-01"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "15aba01d3264a03610ce96793c9d622b3e7ee5408cd23cfcb969808eba916c7a",
+   "local_path": "logs/runs/run-1793913860/episodes/R-01/batch-0.json",
+   "operator": "ZipKart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "93379ef68cb11f83e7dae3de7e1450e0c2be1386597c2ca0b1ddd4a55297863b"
+   ],
+   "robot_id": "R-01",
+   "root_hash": null,
+   "run_id": "run-1793913860",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793913861.9947085,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
+  }
+ ],
+ "runs": [
+  {
+   "recorded_at": 1793913829.2354565,
+   "rtf": 0.82,
+   "run_id": "test-rec",
+   "sim_duration_s": 5.05,
+   "stats": {
+    "order": 12,
+    "state": 50
+   },
+   "stream_path": "logs/runs/test-rec/stream.jsonl",
+   "wall_duration_s": 6.16
+  }
+ ],
+ "version": 1
+}

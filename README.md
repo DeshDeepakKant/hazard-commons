@@ -6,7 +6,15 @@ ETHGlobal Mumbai 2026 · 0G track *Physical AI: Agents with a Body* · lane *Rob
 
 Operators are fictional (ZipKart, MinuteMart, DashKirana), inspired by quick-commerce apps. No real brands or logos are used.
 
-**Live demo (replay of a real run):** https://hazard-commons.vercel.app/
+| | |
+|---|---|
+| **Demo video** (2:59) | [`docs/demo.mp4`](docs/demo.mp4) |
+| **Live demo** | https://hazard-commons.vercel.app/ (in-browser replay of a real recorded run on 0G Galileo, no install) |
+| **Contracts** (0G Galileo, chain 16602) | `HazardRegistry` [`0x2098b78B…21Ba0`](https://chainscan-galileo.0g.ai/address/0x2098b78B804a9506f7A9074FBd35C76906421Ba0) · `ComputeCreditVault` [`0x36953599…F9EF83`](https://chainscan-galileo.0g.ai/address/0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83) ([details](#deployed-contracts-0g-galileo-testnet)) |
+| **Evidence** | [`docs/EVIDENCE.md`](docs/EVIDENCE.md): 0G request ids, tx hashes, Storage root hashes |
+| **Setup** | [Setup and run](#setup-and-run) |
+| **Team** | Desh Deepak Kant · GitHub / X / Telegram [@DeshDeepakKant](#team) |
+| **Tracks** | 0G *Physical AI: Agents with a Body* (Robots and machines) · 0G 1.4 *Agents That Pay for Themselves* |
 
 ![Hazard Commons: three rival fleets over a 3D Bandra West, Mumbai, with the 0G decision feed on the right](docs/img/overview.jpg)
 
@@ -50,6 +58,29 @@ All from the recorded Galileo run (`runs/demo.jsonl`, what the hosted demo repla
 **Safe stop, never a faked decision.** If 0G times out, is unreachable, returns a 503, or returns invalid JSON twice, the robot goes to `SAFE_STOP` (rover pulls to the kerb and holds; drone hovers, then lands). There is no heuristic, cache or other provider standing in. `MOCK_BRAIN=1` exists only for physics development, prints a banner, and is refused when `DEMO=1`. `DEMO=1` also refuses any chain other than Galileo.
 Proof: `scripts/test_safestop.py` points the Router at a dead address; every robot safe-stops and no decision is fabricated.
 
+## Deployed contracts (0G Galileo testnet)
+Chain id `16602`, RPC `https://evmrpc-testnet.0g.ai`, explorer [chainscan-galileo.0g.ai](https://chainscan-galileo.0g.ai). Source of truth: [`chain/deployments/galileo.json`](chain/deployments/galileo.json).
+
+| Contract | Address | Deploy tx | Source |
+|---|---|---|---|
+| `HazardRegistry` (shared hazard map: staked report, rival verify, confirm / reject + slash) | [`0x2098b78B804a9506f7A9074FBd35C76906421Ba0`](https://chainscan-galileo.0g.ai/address/0x2098b78B804a9506f7A9074FBd35C76906421Ba0) | [`0xf8f0b22f…`](https://chainscan-galileo.0g.ai/tx/0xf8f0b22fd4fe93559510b2a583c3fd686a10fcfd524fab0bc84f4264c9f2b3c7) (block 64099311) | [`HazardRegistry.sol`](chain/foundry/src/HazardRegistry.sol) |
+| `ComputeCreditVault` (per-robot compute credit deposits, track 1.4) | [`0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83`](https://chainscan-galileo.0g.ai/address/0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83) | [`0xfb24cdb6…`](https://chainscan-galileo.0g.ai/tx/0xfb24cdb61c4c3c53d068626766530df6015654ebe5ed544507bc62eec2f9d45e) (block 64227019) | [`ComputeCreditVault.sol`](chain/foundry/src/ComputeCreditVault.sol) |
+
+Operator signers (fictional companies, throwaway testnet keys): ZipKart [`0xb347…dcd9`](https://chainscan-galileo.0g.ai/address/0xb347c4A3aA66E72746fcC7CB925EDe90c681dcd9), MinuteMart [`0x57e5…DEC4`](https://chainscan-galileo.0g.ai/address/0x57e5eF031777777e3122362243Af113c0cCBDEC4), DashKirana [`0x9beD…3293`](https://chainscan-galileo.0g.ai/address/0x9beD4D26B8Bb6D054DA761c2B7d8e876c7253293). Config: stake 0.0001 0G, 1 rival confirm or 1 dispute resolves, reward 0.00001 0G per confirm.
+
+## Where 0G is in the code
+| What | Code |
+|---|---|
+| 0G Router call (OpenAI-compatible, TEE trust-mode header, `verify_tee`, client request id, `X-Request-ID` capture) | [`brain/zg_router.py#L162`](brain/zg_router.py#L162) |
+| Checkpoint decision; any 0G failure → `SAFE_STOP`, never a guess | [`brain/client.py#L164`](brain/client.py#L164) (`_decide`), [`#L118`](brain/client.py#L118) (`_fail`) |
+| Staked hazard report / rival verification on 0G Chain | [`HazardRegistry.sol#L190`](chain/foundry/src/HazardRegistry.sol#L190) (`reportHazard`), [`#L238`](chain/foundry/src/HazardRegistry.sol#L238) (`verifyHazard`); Python: [`chain/bindings.py#L283`](chain/bindings.py#L283), events [`#L330`](chain/bindings.py#L330) |
+| Hash-chained episode log (`prev_record_sha256`) | [`memory/episode_log.py#L111`](memory/episode_log.py#L111) |
+| Upload to 0G Storage (official TS SDK `Indexer.upload`) | [`memory/zg-storage/upload.mjs#L39`](memory/zg-storage/upload.mjs#L39), called from [`memory/zg_storage.py#L45`](memory/zg_storage.py#L45) |
+| In-browser re-verification: download from the 0G Storage indexer, recompute every hash | [`viewer/src/ui/verify.ts#L87`](viewer/src/ui/verify.ts#L87) |
+| Robot wallet: debit the Router's billed cost, tier → cheaper 0G model → pause | [`brain/wallets.py#L152`](brain/wallets.py#L152) (`tier`), [`#L180`](brain/wallets.py#L180) (`debit`) |
+| Self-funding top-up: `ComputeCreditVault.deposit` on Galileo → Router credit → wallet | [`brain/topup.py#L143`](brain/topup.py#L143), [`chain/credit_vault.py#L173`](chain/credit_vault.py#L173), [`ComputeCreditVault.sol#L36`](chain/foundry/src/ComputeCreditVault.sol#L36) |
+| Testnet-Router billing stand-in (balance API, 402 when empty, inference forwarded to the real 0G Router) | [`testnet_router_mock/app.py#L147`](testnet_router_mock/app.py#L147) |
+
 ## Architecture
 ```
             ┌────────────── 0G ───────────────┐
@@ -70,8 +101,60 @@ Proof: `scripts/test_safestop.py` points the Router at a dead address; every rob
 ```
 World: OpenStreetMap Bandra West (~1.6 × 1.5 km, 2,013 buildings, 570 road segments, left-hand traffic).
 
-## Run it
-Requires Linux, `uv`, Node 22, Foundry.
+## Setup and run
+
+**No install:** open https://hazard-commons.vercel.app/ (replay of the recorded Galileo run; *Verify log* checks 0G Storage live from your browser).
+
+**Prerequisites:** Linux, Python 3.11 via [`uv`](https://docs.astral.sh/uv/), Node 22, [Foundry](https://getfoundry.sh) (for contracts), a 0G Router API key ([pc.0g.ai](https://pc.0g.ai)), and a little Galileo testnet 0G from the [faucet](https://faucet.0g.ai) for the deployer and the three operator wallets. SUMO comes from pip (`eclipse-sumo`), no system install.
+
+**1. Install**
+```bash
+git clone https://github.com/DeshDeepakKant/hazard-commons && cd hazard-commons
+uv python install 3.11 && uv venv -p 3.11 .venv
+uv pip install -p .venv -e ".[dev]"
+(cd memory/zg-storage && npm ci)                       # 0G Storage sidecar (official TS SDK)
+(cd chain/foundry && forge install --no-git foundry-rs/forge-std)
+(cd viewer && npm ci)
+```
+
+**2. Configure** (`.env` is git-ignored; never commit it)
+```bash
+cp .env.example .env
+.venv/bin/python scripts/gen_wallets.py                # throwaway testnet keys (prints addresses only)
+# edit .env: ZG_ROUTER_API_KEY=<your 0G Router key>; fund the printed addresses from the faucet
+```
+| Variable | Purpose |
+|---|---|
+| `ZG_ROUTER_BASE_URL`, `ZG_ROUTER_API_KEY`, `ZG_MODEL` | 0G Compute Router (`https://router-api.0g.ai/v1`, `0gm-1.0-35b-a3b`) |
+| `ZG_RPC_URL`, `ZG_CHAIN_ID` | 0G Galileo (`https://evmrpc-testnet.0g.ai`, `16602`) |
+| `DEPLOYER_PRIVATE_KEY`, `OPERATOR_{ZIPKART,MINUTEMART,DASHKIRANA}_PRIVATE_KEY` | testnet signers |
+| `ZG_STORAGE_INDEXER`, `STORAGE_PRIVATE_KEY` | 0G Storage indexer and upload payer (defaults to deployer) |
+| `DEMO=1` | demo mode: real 0G only (refuses `MOCK_BRAIN`, refuses non-Galileo chains) |
+
+**3. Deploy** (optional: the addresses above are already deployed; skip to use them)
+```bash
+chain/deploy_galileo.sh --env-file .env                # HazardRegistry → chain/deployments/galileo.json
+.venv/bin/python chain/deploy_vault.py --env-file .env  # ComputeCreditVault
+```
+
+**4. Run**
+```bash
+.venv/bin/python -m brain.spike --call                 # one real 0G Router call (prints request id)
+scripts/run_demo.sh --traffic --loop                   # live sim on :8765 (DEMO=1)
+(cd viewer && npm run dev)                             # open http://localhost:5173/?live
+```
+Self-funding robots (track 1.4): `.venv/bin/python scripts/run_testnet_router_mock.py --port 8790` in one terminal, then `ZG_WALLET_START=400 scripts/run_demo.sh --traffic --loop --topup`.
+
+**5. Test and prove**
+```bash
+.venv/bin/pytest -q tests/test_wallets.py tests/test_brain.py tests/test_topup.py tests/test_testnet_router_mock.py
+(cd chain/foundry && forge test)                       # HazardRegistry + ComputeCreditVault
+.venv/bin/python scripts/test_safestop.py              # dead Router → every robot SAFE_STOPs, nothing fabricated
+.venv/bin/python scripts/record_run.py --duration 240 --traffic --run-id demo-1   # record a replayable run
+```
+
+<details><summary>All commands in one block</summary>
+
 ```bash
 uv python install 3.11 && uv venv -p 3.11 .venv
 uv pip install -p .venv -e ".[dev]"
@@ -88,6 +171,9 @@ scripts/run_demo.sh --traffic --loop                  # same, replays the story 
 (cd viewer && npm ci && npm run dev)                  # viewer; ?replay=<stream.jsonl> for replay
 .venv/bin/python scripts/test_safestop.py             # safe-stop proof
 ```
+
+
+</details>
 
 ## Inject a disaster
 
@@ -187,3 +273,11 @@ HazardRegistry on 0G Galileo: [`0x2098b78B804a9506f7A9074FBd35C76906421Ba0`](htt
 
 ## Layout
 `world/` OSM → meshes, road graph, POIs · `traffic/` SUMO · `sim/` bodies, FSM, engine, scenario · `brain/` 0G Router client, prompts, perception · `memory/` episode log + Storage sidecar · `chain/` Foundry contract + bindings · `ops/` orders and dispatch · `server/` FastAPI/WS · `viewer/` Three.js · `scripts/` demo, record, safe-stop test · `docs/` spec, interfaces, evidence
+
+## Team
+| Name | GitHub | X | Telegram |
+|---|---|---|---|
+| Desh Deepak Kant (solo) | [@DeshDeepakKant](https://github.com/DeshDeepakKant) | [@DeshDeepakKant](https://x.com/DeshDeepakKant) | [@DeshDeepakKant](https://t.me/DeshDeepakKant) |
+
+## License
+[MIT](LICENSE). Map data © OpenStreetMap contributors (ODbL); hazard photo credits in [`assets/hazard_photos/ATTRIBUTION.md`](assets/hazard_photos/ATTRIBUTION.md).

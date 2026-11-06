@@ -6,8 +6,34 @@ ETHGlobal Mumbai 2026 · 0G track *Physical AI: Agents with a Body* · lane *Rob
 
 Operators are fictional (ZipKart, MinuteMart, DashKirana), inspired by quick-commerce apps. No real brands or logos are used.
 
+**Live demo (replay of a real run):** https://hazard-commons.vercel.app/
+
+![Hazard Commons: three rival fleets over a 3D Bandra West, Mumbai, with the 0G decision feed on the right](docs/img/overview.jpg)
+
 ## The problem
 Quick-commerce companies run fleets of delivery robots and drones from neighbourhood dark stores. When one robot finds an accident, road works or a waterlogged lane, every robot should learn it, including rivals' robots. But rivals don't trust each other: a company may withhold reports or post fake ones to slow competitors, and nobody accepts a rival owning the shared map.
+
+## Screenshots
+All from the recorded Galileo run (`runs/demo.jsonl`, what the hosted demo replays) or the live sim.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/cp-h1-detail.jpg" alt="CP-H1 decision detail"><br><b>1. Detect (CP-H1).</b> Rover R-06 sends its camera frame to 0G Compute. The card shows exactly what 0G saw, the verdict (accident, rovers ✗ drones ✓), model, 0G request id, cost and chain tx.</td>
+<td width="50%"><img src="docs/img/drone-verify.jpg" alt="Rival drone verifying"><br><b>2. Verify (CP-V).</b> The report is staked on 0G Chain; ZipKart's drone D-01 (a rival) flies over, asks 0G again and confirms it on chain.</td>
+</tr>
+<tr>
+<td><img src="docs/img/reroute.jpg" alt="Route-ahead reroutes"><br><b>3. Reroute (CP-H2).</b> Rovers from every operator meet the confirmed hazard on their route and reroute, because it was verified by an independent operator.</td>
+<td><img src="docs/img/fake-disputed.jpg" alt="Fake report disputed"><br><b>4. Cheating does not pay.</b> DashKirana posts a fake road-works report; a rival drone disputes it, the registry rejects it and slashes the stake.</td>
+</tr>
+<tr>
+<td><img src="docs/img/safe-stop.jpg" alt="SAFE STOP on 0G outage"><br><b>5. 0G outage → SAFE_STOP.</b> With 0G unreachable the robot pulls over; the card records "nothing guessed", no model output, nothing on chain.</td>
+<td><img src="docs/img/bystander-inquiry.jpg" alt="Bystander inquiry in Hindi"><br><b>6. Bystander inquiry.</b> At a hazard the rover asks people nearby (Hindi or English, speaker + mic); answers go to 0G as untrusted testimony. Simulated answers are labelled.</td>
+</tr>
+<tr>
+<td><img src="docs/img/order-drawer.jpg" alt="Order drawer"><br><b>7. Live orders.</b> Drop a pin on any building, fill the cart; the fastest operator dispatches a rover.</td>
+<td><img src="docs/img/storage-verified.jpg" alt="Episode log verified from 0G Storage"><br><b>8. Verify on 0G Storage.</b> Paste a root hash: the browser downloads the log from the 0G indexer and re-checks every hash link, frame and decision card.</td>
+</tr>
+</table>
 
 ## How 0G is used
 | Layer | What it does here | Unplug it and... |
@@ -74,6 +100,8 @@ it. The list in the popover clears a disaster. REST: `POST /api/hazards`, `POST 
 `GET /api/hazards/props`, `DELETE /api/hazards/{prop_id}`. The edge is not pre-blocked: closures come only
 from the genuine report/verify flow.
 
+![Disaster popover in live mode](docs/img/disaster-popover.jpg)
+
 ## Agents that pay for themselves (0G track 1.4)
 
 Every body (8 rovers, 2 drones) is its own economic agent with its own credit wallet (`brain/wallets.py`).
@@ -132,6 +160,13 @@ wallet code, one body starting at 300 µUSD, real camera frame): 2 calls on `0gm
 → economy → 2 calls on `qwen2.5-vl-72b-instruct` (62, 61 µUSD, still classified the accident) → paused →
 5th checkpoint made **no** model call and returned SAFE_STOP → +600 hazard income → back to normal.
 Request ids: `docs/EVIDENCE.md` § Agents that pay for themselves; raw output `docs/wallet_demo.json`.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/robot-wallets.jpg" alt="Robot wallets popover"><br>Live <b>Wallets</b> popover: balance, earned, spent and tier per body; recent earnings marked on-chain (tx link) or SIMULATED.</td>
+<td width="50%"><img src="docs/img/vault-tx-chainscan.jpg" alt="ComputeCreditVault deposit on chainscan"><br>The self-funding top-up on Galileo: ZipKart's wallet deposits 0.00001 0G into <code>ComputeCreditVault</code> for R-01 (<a href="https://chainscan-galileo.0g.ai/tx/0xf6a4430ceb1eb2a4bdf750938dd3b37a25035e8ee9793ea03b55632e982b26a5">tx</a>).</td>
+</tr>
+</table>
 
 ## 0G evidence
 Verified on 2026-11-06: a real Router call to `0gm-1.0-35b-a3b` with a composited accident photo returned a valid verdict in ~7 s.

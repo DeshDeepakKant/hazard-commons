@@ -63,12 +63,12 @@ brain:
     # can run on GLM-5.3 (also 0G, TeeML, sealed). Vision checkpoints stay on the default model.
     tee-text:
       CP-H2: {model: glm-5.3, trust_mode: private}
-    # As tee-text, plus vision on a NON-TEE 0G model. Needs a second Router key whose trust mode is
-    # "standard" in ZG_ROUTER_API_KEY_STANDARD (the main key is private/TEE-only). Shown as NO TEE.
+    # As tee-text, plus vision on a NON-TEE 0G model. Needs a Router key that allows trust mode
+    # "standard" (ZG_ROUTER_API_KEY, if its key permits it). Every card shows the model and NO TEE.
     outage:
       CP-H2: {model: glm-5.3, trust_mode: private}
-      CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false, api_key_env: ZG_ROUTER_API_KEY_STANDARD}
-      CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false, api_key_env: ZG_ROUTER_API_KEY_STANDARD}
+      CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+      CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
 
 storage:
   indexer_env: ZG_STORAGE_INDEXER

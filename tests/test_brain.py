@@ -303,9 +303,12 @@ def test_per_checkpoint_routes_use_their_own_model(fake):
     assert not run(b, req(cp="CP-H2", seq=3)).ok          # outage toggle reaches routed checkpoints too
 
 
-def test_profile_without_key_env_is_skipped(monkeypatch):
+def test_outage_profile_routes_vision_to_non_tee_model(monkeypatch):
     from brain.client import build_profile_routes
-    monkeypatch.delenv("ZG_ROUTER_API_KEY_STANDARD", raising=False)
     monkeypatch.setenv("ZG_ROUTER_API_KEY", "sk-test-0123456789abcdef")
     routes, notes = build_profile_routes("outage")
-    assert set(routes) == {"CP-H2"} and any("skipped" in n for n in notes)
+    assert set(routes) == {"CP-H1", "CP-V", "CP-H2"}
+    assert routes["CP-H1"].trust_mode == "standard" and routes["CP-H1"].model == "qwen2.5-vl-72b-instruct"
+    assert routes["CP-H2"].model == "glm-5.3" and routes["CP-H2"].trust_mode == "private"
+    assert any("NO TEE" in n for n in notes)
+    assert build_profile_routes("default") == ({}, [])

@@ -32,6 +32,7 @@ class EngineControl(Protocol):
     def inject_random(self, real: bool = True, type: Optional[str] = None) -> dict[str, Any]: ...
     def clear_injected(self, prop_id: str) -> dict[str, Any]: ...
     def list_props(self) -> list[dict[str, Any]]: ...
+    def wallets(self) -> dict[str, Any]: ...        # per-robot credit wallets (brain/wallets.py)
 
 
 _engine: Optional[EngineControl] = None
@@ -244,3 +245,34 @@ def cancel_order(order_id: str) -> dict[str, Any]:
     except ValueError as e:
         raise HTTPException(409, str(e))
 # END orders v2
+
+
+# ======================================================================================
+# BEGIN robot wallets ("Agents That Pay for Themselves"): keep this block together
+# ======================================================================================
+class WalletCreditIn(BaseModel):
+    amount_micro_usd: int
+    note: str = ""
+
+
+@app.get("/api/wallets")
+def get_wallets() -> dict[str, Any]:
+    if _engine is None or not hasattr(_engine, "wallets"):
+        return {"enabled": False, "wallets": []}
+    return _engine.wallets()
+
+
+@app.post("/api/wallets/{robot_id}/credit")
+def credit_wallet(robot_id: str, body: WalletCreditIn) -> dict[str, Any]:
+    """Demo/testing top-up, recorded in the ledger as source 'manual'. Only when wallets are enabled."""
+    if _engine is None or not hasattr(_engine, "credit_wallet"):
+        raise HTTPException(503, "sim engine not running")
+    if not 0 < body.amount_micro_usd <= 1_000_000:
+        raise HTTPException(422, "amount_micro_usd must be within 1..1000000")
+    try:
+        return _engine.credit_wallet(robot_id, body.amount_micro_usd, body.note)  # type: ignore[attr-defined]
+    except KeyError:
+        raise HTTPException(404, f"unknown robot {robot_id}")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+# END robot wallets

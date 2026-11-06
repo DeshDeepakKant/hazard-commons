@@ -69,6 +69,32 @@ brain:
       CP-H2: {model: glm-5.3, trust_mode: private}
       CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+    # Used by robot wallets (brain.wallets.economy_profile) for a body whose credit is below the
+    # economy threshold. Explicit trust_mode on every route: text stays TEE (glm-5.3), vision runs on
+    # a cheaper NON-TEE 0G model and its cards say NO TEE. Never silently TEE.
+    economy:
+      CP-H2: {model: glm-5.3, trust_mode: private}
+      CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+      CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+      CP-D:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+
+  # Agents That Pay for Themselves: one credit wallet per robot body (brain/wallets.py).
+  # Off by default; enable with ZG_WALLETS=1 or scripts/run_demo.py --wallets.
+  wallets:
+    enabled: false
+    start_micro_usd: 3000          # per body, ~30 calls at ~90 micro-USD/call
+    max_spend_micro_usd: 6000      # lifetime per-robot spend cap (0 = none)
+    economy_fraction: 0.40         # balance/start below -> economy route
+    throttled_fraction: 0.15       # below -> throttled (economy route + rate limit)
+    min_call_cost_micro_usd: 90    # balance below this -> paused (SAFE_STOP, no model call)
+    throttle_min_interval_s: 20    # throttled: min wall seconds between calls per robot
+    economy_profile: economy
+    estimate_in_micro_usd_per_1k: 20    # only if the router reports no billing
+    estimate_out_micro_usd_per_1k: 60
+    income:
+      hazard_reward_micro_usd: 600       # chain-confirmed hazard -> reporting robot (source: chain)
+      verifier_reward_micro_usd: 150     # verifier drone whose verdict matched the outcome (chain)
+      delivery_fee_micro_usd: 300        # SIMULATED flat fee per delivered order (source: simulated)
 
 storage:
   indexer_env: ZG_STORAGE_INDEXER

@@ -360,6 +360,11 @@ class Engine:
         self._spawn_robots()
         self.rover_adapters = [RoverAdapter(r, self) for r in self.world.robots.values()
                                if isinstance(r, Rover)]
+        # robot credit wallets (None unless brain.wallets.enabled / ZG_WALLETS=1)
+        self._verifier_votes: dict[str, dict[str, bool]] = {}
+        if self.robot_wallets is not None:
+            for r in self.world.robots.values():
+                self.robot_wallets.register(r.id, r.operator, r.kind)
 
         # server attachment
         if attach_to_server:
@@ -800,6 +805,8 @@ class Engine:
                     dstate["timer"] = self.sim_time + 1.0
                     rover.set_state(FsmState.HANDED_OVER, note="parcel handed over")
                     self.order_book.set_status(order.id, "delivered", self.sim_time, robot_id=rover.id)
+                    self._credit_income(rover.id, "delivery_fee_micro_usd", f"order:{order.id}",
+                                        "simulated", "SIMULATED delivery fee (flat, not real money)")
 
             elif phase == "HANDED_OVER":
                 if self.sim_time >= timer:
@@ -1131,6 +1138,7 @@ class Engine:
             out = res.output or {}
             verdict = out.get("verdict")
             if verdict in ("confirm", "dispute"):
+                self._verifier_votes.setdefault(str(hazard_id), {})[robot.id] = (verdict == "confirm")
                 self.chain.verify_hazard(
                     operator=robot.operator,
                     robot_id=robot.id,
@@ -1266,6 +1274,54 @@ class Engine:
 
         rover.begin_checkpoint(self.brain, req, on_ok=on_ok, on_result=on_result, now=self.sim_time)
 
+    # ------------------------------------------------------------------ robot wallet income
+    @property
+    def robot_wallets(self) -> Optional[Any]:
+        return getattr(self.brain, "wallets", None)
+
+    def _credit_income(self, robot_id: str, rate_key: str, ref: str, source: str, note: str,
+                       tx_hash: Optional[str] = None) -> None:
+        w = self.robot_wallets
+        if w is None or not robot_id:
+            return
+        try:
+            w.credit(robot_id, w.income.get(rate_key, 0), kind="earn", source=source, ref=ref,
+                     tx_hash=tx_hash, sim_time=self.sim_time, note=note)
+        except Exception:
+            log.exception("wallet credit failed")
+
+    def _credit_chain_outcome(self, hid: str, hz: Any, ev: dict[str, Any]) -> None:
+        """Confirmed hazard -> reporting robot earns the (stake refund + reward) converted at a configured
+        rate; a verifier drone whose verdict matched the on-chain outcome earns a smaller amount.
+        Idempotent per hazard (refs), so repeated/deferred events never double-pay."""
+        if self.robot_wallets is None:
+            return
+        tx = ev.get("tx_hash")
+        if hz.status == "confirmed" and hz.reporter_robot:
+            self._credit_income(hz.reporter_robot, "hazard_reward_micro_usd", f"hazard:{hid}:report",
+                                "chain", f"hazard #{hid} confirmed on chain (stake refund + reward)", tx)
+        if hz.status in ("confirmed", "rejected"):
+            for rid, confirm in (self._verifier_votes.get(str(hid)) or {}).items():
+                if confirm == (hz.status == "confirmed"):
+                    self._credit_income(rid, "verifier_reward_micro_usd", f"hazard:{hid}:verify:{rid}",
+                                        "chain", f"correct verification of hazard #{hid}", tx)
+
+    def wallets(self) -> dict[str, Any]:
+        w = self.robot_wallets
+        if w is None:
+            return {"enabled": False, "wallets": []}
+        return {"enabled": True, "wallets": w.snapshot_all(20)}
+
+    def credit_wallet(self, robot_id: str, amount_micro_usd: int, note: str = "") -> dict[str, Any]:
+        w = self.robot_wallets
+        if w is None:
+            raise ValueError("wallets are not enabled")
+        if robot_id not in self.world.robots:
+            raise KeyError(robot_id)
+        w.credit(robot_id, amount_micro_usd, kind="topup", source="manual", ref=w.new_ref("manual"),
+                 sim_time=self.sim_time, note=("MANUAL demo top-up" + (f": {note}" if note else "")))
+        return w.snapshot(robot_id)
+
     # ------------------------------------------------------------------ chain events & SUMO sync
     def _process_chain_events(self) -> None:
         evs = self.chain.poll_events()
@@ -1290,6 +1346,7 @@ class Engine:
                 continue
 
             BUS.publish("hazard", self.sim_time, hz)
+            self._credit_chain_outcome(hid, hz, ev)
 
             if ev_name == "HazardResolved" or hz.status in ("confirmed", "rejected", "cleared"):
                 if hz.status == "confirmed":

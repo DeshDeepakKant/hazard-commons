@@ -25,7 +25,8 @@ log = logging.getLogger("hazard.brain")
 class ZGBrain:
     def __init__(self, router: Optional[ZGRouter] = None, max_workers: int = 4,
                  max_calls: Optional[int] = None,
-                 on_result: Optional[Callable[[CheckpointRequest, CheckpointResult], None]] = None):
+                 on_result: Optional[Callable[[CheckpointRequest, CheckpointResult], None]] = None,
+                 wallets: Any = "auto"):
         bs = brain_settings()
         self.router = router or ZGRouter()
         self._real_base_url = self.router.base_url
@@ -46,6 +47,21 @@ class ZGBrain:
         self._unreachable = False
         self._online = True
         self._on_result = on_result
+        # Per-robot credit wallets (brain/wallets.py). None = disabled: behaviour identical to before.
+        # "auto" builds a registry from settings brain.wallets when enabled (or env ZG_WALLETS=1).
+        self.economy_routes: dict[str, ZGRouter] = {}
+        if wallets == "auto":
+            from brain.wallets import RobotWalletRegistry, wallet_settings, wallets_enabled
+            wcfg = wallet_settings()
+            wallets = RobotWalletRegistry(wcfg) if wallets_enabled(wcfg) else None
+            if wallets is not None and wallets.economy_profile:
+                try:
+                    self.economy_routes, notes = build_profile_routes(wallets.economy_profile)
+                    for n in notes:
+                        log.warning("wallet economy route %s: %s", wallets.economy_profile, n)
+                except ValueError as e:
+                    log.warning("wallet economy profile unusable (%s): economy tier keeps default routes", e)
+        self.wallets = wallets
 
     # ------------------------------------------------------------------ Brain Protocol
     def submit(self, req: CheckpointRequest) -> "Future[CheckpointResult]":
@@ -62,7 +78,12 @@ class ZGBrain:
     def set_routes(self, routes: dict[str, ZGRouter]) -> None:
         self.routes = dict(routes)
 
-    def router_for(self, checkpoint: str) -> ZGRouter:
+    def set_economy_routes(self, routes: dict[str, ZGRouter]) -> None:
+        self.economy_routes = dict(routes)
+
+    def router_for(self, checkpoint: str, tier: Optional[str] = None) -> ZGRouter:
+        if tier in ("economy", "throttled") and checkpoint in self.economy_routes:
+            return self.economy_routes[checkpoint]
         return self.routes.get(checkpoint, self.router)
 
     def set_unreachable(self, on: bool) -> None:
@@ -72,7 +93,7 @@ class ZGBrain:
             self._breaker_until.clear()
             self._fail_streak.clear()
             self.router.set_base_url(DEAD_BASE_URL if on else self._real_base_url)
-            for r in self.routes.values():
+            for r in [*self.routes.values(), *self.economy_routes.values()]:
                 r.set_base_url(DEAD_BASE_URL if on else self._real_base_url)
             if on:
                 self._online = False
@@ -144,13 +165,27 @@ class ZGBrain:
         if req.checkpoint not in checkpoints.PROMPT_FILES:
             return self._fail(req, f"unknown checkpoint {req.checkpoint}")
         crid = f"{req.episode_id}:{req.seq}"
-        model = self.router_for(req.checkpoint).model
+        tier: Optional[str] = None
+        if self.wallets is not None:
+            gate = self.wallets.authorize(req.robot_id)
+            if not gate.allowed:
+                # No model call at all: the robot cannot afford one. Nothing is guessed.
+                return self._fail(req, gate.reason)
+            tier = gate.tier
+        router = self.router_for(req.checkpoint, tier)
+        model = router.model
+        cost_total = 0
+        cost_src = "router"
         messages = checkpoints.build_messages(req)
         attempts: list[dict[str, Any]] = []
         total_ms = 0.0
         last: Optional[RouterResponse] = None
         problem = ""
         for attempt in range(1 + self.max_retries_invalid):
+            if self.wallets is not None and attempt > 0 and not self.wallets.authorize(
+                    req.robot_id, rate_limit=False).allowed:
+                return self._fail(req, "budget: robot credit exhausted (tier paused)",
+                                  **self._fields(req, last, attempts, total_ms, cost_total, cost_src, router))
             if self._breaker_open(model):
                 return self._fail(req, "0G unreachable: circuit breaker open after repeated failures "
                                        "(SAFE_STOP, nothing guessed)", **_result_fields(last, attempts, total_ms))
@@ -160,7 +195,7 @@ class ZGBrain:
             # Each attempt gets its own client id so router logs stay unambiguous.
             attempt_crid = crid if attempt == 0 else f"{crid}:retry{attempt}"
             try:
-                last = self.router_for(req.checkpoint).chat(messages, client_request_id=attempt_crid)
+                last = router.chat(messages, client_request_id=attempt_crid)
             except RouterError as e:
                 self._refund_budget()          # a failed call is not a billed model call
                 self._note_transport(model, False)
@@ -172,6 +207,10 @@ class ZGBrain:
                                   zg_trace={"attempts": attempts} if len(attempts) > 1 or e.request_id else None)
             self._note_transport(model, True)
             total_ms += last.latency_ms
+            if self.wallets is not None:        # a 2xx call was billed (also if the output is invalid)
+                cost, cost_src = _call_cost(last, self.wallets.cfg)
+                cost_total += cost
+                self.wallets.debit(req.robot_id, cost, ref=last.request_id, sim_time=req.sim_time)
             try:
                 output = checkpoints.validate_output(req.checkpoint, last.content)
             except ValueError as e:
@@ -183,11 +222,37 @@ class ZGBrain:
                                        checkpoints.corrective_message(req.checkpoint, problem)]
                 continue
             attempts.append({"client_request_id": attempt_crid, "request_id": last.request_id})
-            fields = _result_fields(last, attempts, total_ms)
+            fields = self._fields(req, last, attempts, total_ms, cost_total, cost_src, router)
             return CheckpointResult(ok=True, checkpoint=req.checkpoint, robot_id=req.robot_id,
                                     output=output, client_request_id=crid, **fields)
         return self._fail(req, f"invalid output after {self.max_retries_invalid} retry: {problem}",
-                          **_result_fields(last, attempts, total_ms))
+                          **self._fields(req, last, attempts, total_ms, cost_total, cost_src, router))
+
+    def _fields(self, req: CheckpointRequest, last: Optional[RouterResponse], attempts: list[dict[str, Any]],
+                total_ms: float, cost: int, cost_src: str, router: ZGRouter) -> dict[str, Any]:
+        f = _result_fields(last, attempts, total_ms)
+        if self.wallets is not None and f.get("zg_trace"):
+            f["zg_trace"]["_hc"]["wallet"] = self.wallets.wallet_info(
+                req.robot_id, cost, last.model if last else router.model, cost_source=cost_src,
+                trust_mode=router.trust_mode, route="economy" if router is not self.routes.get(
+                    req.checkpoint, self.router) else "default")
+        return f
+
+
+def _call_cost(last: RouterResponse, cfg: dict[str, Any]) -> tuple[int, str]:
+    """Actual billed micro-USD from x_0g_trace billing; else estimate from token usage x config rate."""
+    b = last.billing
+    if isinstance(b, dict):
+        for k in ("total_cost_usd_micro", "cost_usd_micro"):
+            try:
+                if b.get(k) is not None:
+                    return max(0, int(round(float(b[k])))), "router"
+            except (TypeError, ValueError):
+                pass
+    u = last.usage or {}
+    est = (float(u.get("prompt_tokens") or 0) * float(cfg.get("estimate_in_micro_usd_per_1k", 20)) +
+           float(u.get("completion_tokens") or 0) * float(cfg.get("estimate_out_micro_usd_per_1k", 60))) / 1000.0
+    return int(round(est)), "estimate"
 
 
 def _result_fields(last: Optional[RouterResponse], attempts: list[dict[str, Any]],

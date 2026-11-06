@@ -95,6 +95,10 @@ async function boot(): Promise<void> {
   const topbar = new Topbar(app.querySelector(".top-host")!, {
     onOutage: (on) => setBrainUnreachable(on).then((ok) => { if (!ok) toast("Could not reach /api/brain/unreachable", "err"); return ok; }),
     onRoutes: (on) => { robots.showRoutes = on; },
+    onSatellite: (on) => {
+      const sat = view.scene.getObjectByName("satellite-imagery");
+      if (sat) sat.visible = on;
+    },
     onCamera: (m) => { if (m === "reset") view.resetView(); else view.setMode(view.mode === "cinematic" ? "orbit" : "cinematic"); },
     onFollow: (id) => view.setMode(id ? "follow" : "orbit", id),
     onOrder: () => orderPage.toggle(),

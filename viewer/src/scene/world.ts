@@ -273,6 +273,7 @@ export function buildRoads(w: WorldData): THREE.Group {
 
 export function buildGround(w: WorldData): THREE.Group {
   const g = new THREE.Group();
+  g.name = "ground";
   const cx = (w.bounds.minX + w.bounds.maxX) / 2, cy = (w.bounds.minY + w.bounds.maxY) / 2;
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(9000, 9000),
@@ -287,10 +288,30 @@ export function buildGround(w: WorldData): THREE.Group {
   pad.rotation.x = -Math.PI / 2;
   pad.position.set(cx, 0.0, -cy);
   g.add(pad);
+
+  // Satellite aerial imagery overlay for Bandra West
+  const satLoader = new THREE.TextureLoader();
+  const satTex = satLoader.load(`${w.base}/satellite.jpg`, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+  });
+  const satMat = new THREE.MeshStandardMaterial({
+    map: satTex,
+    roughness: 0.82,
+    metalness: 0.08,
+  });
+  // Exact UTM bbox dimensions for Bandra West (1703.5m E-W, 1529.2m N-S)
+  const satMesh = new THREE.Mesh(new THREE.PlaneGeometry(1703.5, 1529.2), satMat);
+  satMesh.rotation.x = -Math.PI / 2;
+  satMesh.position.set(0, 0.01, 0);
+  satMesh.name = "satellite-imagery";
+  g.add(satMesh);
+
   const grid = new THREE.GridHelper(Math.max(sx, sy) * 1.6, 60, "#243045", "#1e2838");
-  grid.position.set(cx, 0.01, -cy);
+  grid.position.set(cx, 0.015, -cy);
   (grid.material as THREE.Material).transparent = true;
-  (grid.material as THREE.Material).opacity = 0.35;
+  (grid.material as THREE.Material).opacity = 0.2;
   g.add(grid);
   return g;
 }

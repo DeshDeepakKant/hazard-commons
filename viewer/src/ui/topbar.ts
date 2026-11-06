@@ -5,6 +5,7 @@ import { el, fmtClock } from "./dom";
 export interface TopbarHandlers {
   onOutage: (on: boolean) => Promise<boolean>;
   onRoutes: (on: boolean) => void;
+  onSatellite?: (on: boolean) => void;
   onCamera: (mode: "orbit" | "cinematic" | "reset") => void;
   onFollow: (id: string | null) => void;
   onOrder: () => void;
@@ -30,6 +31,7 @@ export class Topbar {
       ${live ? `<label class="switch" title="POST /api/brain/unreachable"><input type="checkbox" class="outage"><span class="slider"></span><span>Simulate 0G outage</span></label>` : ""}
       <div class="spacer"></div>
       <div class="ctrls">
+        <label class="tog"><input type="checkbox" class="satellite" checked> Satellite</label>
         <label class="tog"><input type="checkbox" class="routes" checked> Routes</label>
         <select class="follow" title="Follow a robot"><option value="">Follow robot…</option></select>
         <button class="cine" title="Auto-orbit camera for recording (C)">🎬 Cinematic</button>
@@ -49,6 +51,7 @@ export class Topbar {
       if (!ok) this.outage!.checked = !want;
       this.outage!.disabled = false;
     });
+    this.root.querySelector<HTMLInputElement>("input.satellite")?.addEventListener("change", (e) => h.onSatellite?.((e.target as HTMLInputElement).checked));
     this.root.querySelector<HTMLInputElement>("input.routes")!.addEventListener("change", (e) => h.onRoutes((e.target as HTMLInputElement).checked));
     this.root.querySelector(".cine")!.addEventListener("click", () => h.onCamera("cinematic"));
     this.root.querySelector(".reset")!.addEventListener("click", () => h.onCamera("reset"));

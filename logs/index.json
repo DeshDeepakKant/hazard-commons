@@ -171,6 +171,91 @@
    "zg_request_ids": [
     "MOCK-1"
    ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793930729-R-04"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "24f5f1c2ef3898b4ae3efa8b6b3bd06cf2108d96397a62956fb1144fc0f44b75",
+   "local_path": "logs/runs/run-1793930729/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "7155747332b2de52b7c48671ab55af9d109d302f6708f5a7c23b4f47ecb3696e"
+   ],
+   "robot_id": "R-04",
+   "root_hash": null,
+   "run_id": "run-1793930729",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793930732.648958,
+   "zg_request_ids": []
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793930789-R-04"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "0b86fa0ff065e0783c33f31da67a1d0169b44a95acf38cf98ab3b989817453f2",
+   "local_path": "logs/runs/run-1793930789/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "03c33fac1b227d94a034d51dccd6fa2f4931879489e14d0bf1e318444b5301dc"
+   ],
+   "robot_id": "R-04",
+   "root_hash": null,
+   "run_id": "run-1793930789",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793930791.0746446,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H2"
+   ],
+   "episode_ids": [
+    "run-1793930791-R-01"
+   ],
+   "error": "0G Storage upload failed after 2 attempts: sidecar exit 1: Node.js v22.23.2",
+   "file_sha256": "daac9bbd32126c3cafef9ff1bc417b71514991c8495abd978c4a7b199b8e55ba",
+   "local_path": "logs/runs/run-1793930791/episodes/R-01/batch-0.json",
+   "operator": "ZipKart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "1173380ca677329f8ddd1215046ffd42c5f38d648ea7bd17abc0c4f7e9d6abf0"
+   ],
+   "robot_id": "R-01",
+   "root_hash": null,
+   "run_id": "run-1793930791",
+   "status": "failed",
+   "tx_hash": null,
+   "written_at": 1793930792.7963917,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
   }
  ],
  "runs": [

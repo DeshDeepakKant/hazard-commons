@@ -57,6 +57,8 @@ from sim.schemas import (
     StorageEvent,
 )
 
+from common.config import is_demo
+
 log = logging.getLogger("hazard.engine")
 
 
@@ -357,6 +359,13 @@ class Engine:
                     return hc
             except Exception as e:
                 log.warning("failed to connect to Galileo chain (%s)", e)
+
+        if is_demo():
+            raise RuntimeError(
+                "DEMO=1 requires the HazardRegistry deployed on 0G Galileo "
+                "(chain/deployments/galileo.json). Anvil / in-memory chains are dev-only and are "
+                "refused so no local transaction can appear in the demo. Fund the deployer and run "
+                "chain/deploy_galileo.sh.")
 
         if anvil_path.exists():
             try:

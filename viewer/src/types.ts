@@ -5,7 +5,7 @@ export type ActorKind = "car" | "auto" | "bike" | "bus" | "pedestrian";
 export type RobotKind = "rover" | "drone";
 export type HazardType = "accident" | "road_works" | "waterlogging" | "none";
 export type HazardStatus = "reported" | "confirmed" | "rejected" | "cleared";
-export type CheckpointId = "CP-H1" | "CP-H2" | "CP-V" | "CP-D";
+export type CheckpointId = "CP-H1" | "CP-H2" | "CP-V" | "CP-D" | "CP-Q";
 export type OrderStatus = "placed" | "assigned" | "picking" | "out_for_delivery" | "at_door" | "delivered" | "failed";
 export type FsmState =
   | "IDLE" | "TO_STORE" | "LOADING" | "DELIVERING" | "AT_DOOR" | "HANDED_OVER" | "RETURNING"
@@ -58,7 +58,7 @@ export interface StorageEvent {
   record_seqs: number[]; zg_request_ids: string[]; local_path: string;
 }
 
-export type Topic = "state" | "decision" | "hazard" | "order" | "chain_tx" | "storage" | "log";
+export type Topic = "state" | "decision" | "hazard" | "order" | "chain_tx" | "storage" | "log" | "inquiry";
 export interface Envelope<T = unknown> { topic: Topic; t: number; data: T; }
 
 export const EXPLORERS = {

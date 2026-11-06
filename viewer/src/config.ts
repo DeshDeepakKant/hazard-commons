@@ -58,6 +58,7 @@ export const CHECKPOINT_LABEL: Record<string, string> = {
   "CP-H2": "Route-ahead decision",
   "CP-V": "Verification",
   "CP-D": "Delivery arrival",
+  "CP-Q": "Bystander inquiry",
 };
 
 export const HAZARD_LABEL: Record<string, string> = {

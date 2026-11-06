@@ -20,6 +20,8 @@ import { OrderPage } from "./ui/order";
 import { initHelp } from "./ui/help";
 import { Timeline } from "./ui/timeline";
 import { DisasterControl } from "./ui/disaster";
+
+import { initInquiry } from "./ui/inquiry";
 import { el, esc } from "./ui/dom";
 import { LiveSource, fetchMeta, setBrainUnreachable } from "./live";
 import { ReplayPlayer, loadJsonl } from "./replay";
@@ -174,6 +176,7 @@ async function boot(): Promise<void> {
   const mockBanner = app.querySelector<HTMLElement>(".mock-banner")!;
   const veil = app.querySelector<HTMLElement>(".outage-veil")!;
   let activeHomesDirty = true;
+  initInquiry(store);
 
   store.on((what, payload) => {
     if (what === "card") {

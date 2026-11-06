@@ -15,7 +15,7 @@ ActorKind = Literal["car", "auto", "bike", "bus", "pedestrian"]
 RobotKind = Literal["rover", "drone"]
 HazardType = Literal["accident", "road_works", "waterlogging", "none"]
 HazardStatus = Literal["reported", "confirmed", "rejected", "cleared"]
-CheckpointId = Literal["CP-H1", "CP-H2", "CP-V", "CP-D"]
+CheckpointId = Literal["CP-H1", "CP-H2", "CP-V", "CP-D", "CP-Q"]
 OrderStatus = Literal["placed", "assigned", "picking", "out_for_delivery", "at_door",
                       "delivered", "failed"]
 
@@ -151,7 +151,7 @@ class Order(BaseModel):
 
 
 # ---------------------------------------------------------------- bus / websocket
-Topic = Literal["state", "decision", "hazard", "order", "chain_tx", "storage", "log"]
+Topic = Literal["state", "decision", "hazard", "order", "chain_tx", "storage", "log", "inquiry"]
 
 
 class StateSnapshot(BaseModel):

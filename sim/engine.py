@@ -41,6 +41,7 @@ from sim.bodies import BodyWorld
 from sim.clock import SimClock
 from sim.controllers.planner import Route
 from sim.drone import Drone
+from sim.inquiry import InquiryManager, start_cp_q
 from sim.robot import Rover
 from sim.schemas import (
     ActorState,
@@ -325,6 +326,9 @@ class Engine:
         # state tracking
         self.props: dict[str, HazardProp] = {}
         self.reported_props: set[str] = set()
+        self.inquiries = InquiryManager(
+            publish=lambda d: BUS.publish("inquiry", self.sim_time, d),
+            start_cp=lambda p, a, s: start_cp_q(self, p, a, s))
         self.verified_props: set[str] = set()
         self.blocked_edges: set[str] = set()
         # user-injected disasters ("Add a disaster"): queued by API threads, applied in step()
@@ -971,6 +975,14 @@ class Engine:
                               f"{' (drone OK)' if 'drone' in passable else ''}; reported + rerouted")
             else:
                 robot.note = f"0G: {htype} passable for rovers; reported, proceeding"
+            # voice inquiry: ask bystanders (viewer speaker + mic); answers become a CP-Q call
+            self.inquiries.open(robot.id, {
+                "type": htype, "severity": sev, "edge_id": prop.edge_id,
+                "description": str(out.get("description") or "")[:200],
+                "location": {"x": round(prop.x, 2), "y": round(prop.y, 2)},
+            }, frame_png_b64=obs.png_b64,
+                private={"thumb": obs.thumb_jpeg_b64, "full": obs.frame_jpeg_b64 or None})
+            robot.note = f"asking bystanders (hi) · {robot.note}"
 
         def on_result(robot: Any, res: CheckpointResult) -> None:
             action = ("report_hazard" if (res.ok and res.output and res.output.get("is_hazard"))
@@ -1330,6 +1342,7 @@ class Engine:
 
         # 6. Checkpoint triggers
         self._check_cp_h1()
+        self.inquiries.tick()
         self._dispatch_verifications()
         self._check_cp_v()
         self._check_cp_h2()
@@ -1369,6 +1382,13 @@ class Engine:
     def cancel_order(self, order_id: str) -> dict[str, Any]:
         order = self.order_book.cancel(order_id, self.sim_time)
         return order.model_dump(mode="json")
+
+    def pending_inquiries(self) -> list[dict[str, Any]]:
+        return self.inquiries.pending()
+
+    def submit_inquiry_answers(self, inquiry_id: str, answers: list[dict[str, Any]],
+                               source: str) -> dict[str, Any]:
+        return self.inquiries.answer(inquiry_id, answers, source)
 
     def set_brain_unreachable(self, on: bool) -> None:
         self.brain.set_unreachable(on)

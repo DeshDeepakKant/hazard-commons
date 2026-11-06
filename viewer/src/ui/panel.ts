@@ -35,6 +35,15 @@ export function summarize(c: Card): { verdict: string; tone: string; detail: str
         ? { verdict: `CONFIRM: ${(HAZARD_LABEL[obs] ?? obs).toLowerCase()} observed`, tone: "hazard", detail: String(o.reason ?? "") }
         : { verdict: `DISPUTE: ${obs === "none" ? "no hazard observed" : (HAZARD_LABEL[obs] ?? obs).toLowerCase() + " observed"}`, tone: "dispute", detail: String(o.reason ?? "") };
     }
+    case "CP-Q": {
+      const src = /\(simulated\)/.test(c.ev.action_taken) ? " · SIMULATED bystander" : "";
+      const eta = typeof o.eta_minutes === "number" ? ` · ~${o.eta_minutes} min` : "";
+      return {
+        verdict: `INQUIRY: ${String(o.what_happened ?? "?")}${eta}${src}`,
+        tone: o.agrees_with_photo === false ? "dispute" : "hazard",
+        detail: [o.summary_hi, o.summary_en].filter(Boolean).join(" / "),
+      };
+    }
     case "CP-D":
       return o.at_correct_location
         ? { verdict: "AT CORRECT DOOR ✓", tone: "ok", detail: "" }

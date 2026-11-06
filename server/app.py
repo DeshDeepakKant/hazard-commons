@@ -111,6 +111,35 @@ def set_speed(s: SpeedIn) -> dict[str, Any]:
         raise HTTPException(400, "speed must be between 0.1 and 100")
     return _engine.set_speed(s.speed)
 
+class InquiryAnswer(BaseModel):
+    q: str
+    a: str = ""
+    lang: str = "hi"
+
+
+class InquiryAnswersIn(BaseModel):
+    answers: list[InquiryAnswer]
+    source: str = "user"          # "user" (typed or spoken) | "simulated"
+
+
+@app.get("/api/inquiries")
+def inquiries_pending() -> dict[str, Any]:
+    if _engine is None or not hasattr(_engine, "pending_inquiries"):
+        return {"inquiries": []}
+    return {"inquiries": _engine.pending_inquiries()}
+
+
+@app.post("/api/inquiries/{inquiry_id}/answers")
+def inquiry_answers(inquiry_id: str, body: InquiryAnswersIn) -> dict[str, Any]:
+    if _engine is None or not hasattr(_engine, "submit_inquiry_answers"):
+        raise HTTPException(503, "sim engine not running")
+    if body.source not in ("user", "simulated"):
+        raise HTTPException(422, "source must be 'user' or 'simulated'")
+    try:
+        return _engine.submit_inquiry_answers(inquiry_id, [a.model_dump() for a in body.answers], body.source)
+    except KeyError:
+        raise HTTPException(404, "no such pending inquiry (expired or already answered)")
+
 
 @app.websocket("/ws")
 async def ws(websocket: WebSocket) -> None:

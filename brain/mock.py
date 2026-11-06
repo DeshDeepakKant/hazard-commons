@@ -57,6 +57,9 @@ class MockBrain:
             out = {"verdict": "confirm" if real else "dispute",
                    "observed_type": truth.get("type", "none") if real else "none",
                    "confidence": 0.9, "reason": "MOCK"}
+        elif req.checkpoint == "CP-Q":
+            out = {"what_happened": "MOCK", "cause": "", "traffic_blocked": True, "eta_minutes": None,
+                   "confidence": 0.5, "agrees_with_photo": True, "summary_hi": "MOCK", "summary_en": "MOCK"}
         else:
             out = {"at_correct_location": True, "confidence": 0.9}
         return CheckpointResult(ok=True, checkpoint=req.checkpoint, robot_id=req.robot_id,

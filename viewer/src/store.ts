@@ -95,6 +95,7 @@ export class Store {
       }
       case "chain_tx": this.onTx(env.data as ChainTxEvent); break;
       case "storage": this.onStorage(env.data as StorageEvent); break;
+      case "inquiry": this.emit("inquiry", env.data); break;
       case "log": {
         const d = env.data as { level?: string; msg?: string } | string;
         const line = typeof d === "string" ? { t: env.t, level: "info", msg: d }

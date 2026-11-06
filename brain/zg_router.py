@@ -105,7 +105,7 @@ class RouterResponse:
         out = dict(self.trace)
         out.setdefault("request_id", self.request_id)
         out["_hc"] = {
-            "x_request_id_header": self.request_id,
+            "x_request_id_header": self.headers.get("x-request-id") or self.request_id,
             "completion_id": self.completion_id,
             "client_request_id": self.client_request_id,
             "provider": self.provider,
@@ -198,7 +198,9 @@ class ZGRouter:
         if not isinstance(trace, dict):
             trace = {"value": trace}
         hdr_rid = raw.headers.get("x-request-id")
-        request_id = hdr_rid or trace.get("request_id")
+        # The gateway can return a chained header ("<edge id>, <router id>"). The canonical id is
+        # x_0g_trace.request_id; the full header stays in zg_trace._hc.x_request_id_header.
+        request_id = trace.get("request_id") or (hdr_rid.split(",")[-1].strip() if hdr_rid else None)
         content = None
         if completion.choices:
             content = completion.choices[0].message.content

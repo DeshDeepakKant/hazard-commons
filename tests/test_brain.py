@@ -32,6 +32,7 @@ class FakeRouter:
         self.delay_s = 0.0
         self.status = 200
         self.error_body = ""
+        self.billing = {"total_cost": "123"}
         srv = self
 
         class H(BaseHTTPRequestHandler):
@@ -63,7 +64,7 @@ class FakeRouter:
                                  "message": {"role": "assistant", "content": content}}],
                     "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
                     "x_0g_trace": {"request_id": rid, "tee_verified": True,
-                                   "provider": "0xProvider", "billing": {"total_cost": "123"}},
+                                   "provider": "0xProvider", "billing": srv.billing},
                 }
                 data = json.dumps(resp).encode()
                 self.send_response(200)

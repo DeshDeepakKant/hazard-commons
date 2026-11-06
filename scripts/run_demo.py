@@ -42,7 +42,11 @@ def main() -> int:
     ap.add_argument("--brain-profile", default=None,
                     help="Per-checkpoint 0G model routes from settings brain.profiles "
                          "(e.g. tee-text, outage). Default: every checkpoint on the TEE vision model")
+    ap.add_argument("--wallets", action="store_true",
+                    help="Give every robot body its own credit wallet (brain.wallets; same as ZG_WALLETS=1)")
     args = ap.parse_args()
+    if args.wallets:
+        os.environ["ZG_WALLETS"] = "1"
     if args.brain_profile:
         os.environ["ZG_BRAIN_PROFILE"] = args.brain_profile
 

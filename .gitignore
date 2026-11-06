@@ -33,3 +33,4 @@ logs/*.log
 
 # agent worktrees
 .claude/
+logs/index.json

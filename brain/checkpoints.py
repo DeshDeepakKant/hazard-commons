@@ -8,6 +8,7 @@ CP-H2  report {hazard_id, edge_id, type, severity, status, passable_for},
        confirms, disputes, reporter_operator, evidence_summary, urgency, task,
        alternatives {extra_distance_m, extra_time_s}
 CP-V   claim {hazard_id, edge_id, type, severity, reporter_operator}, location
+CP-Q   bystander_testimony [{q, a, lang, source}], hazard {type, severity, description}, location
 CP-D   expected_building {address, height, use, name}
 """
 from __future__ import annotations
@@ -24,13 +25,16 @@ from brain.schemas import OUTPUT_SCHEMAS
 from sim.schemas import CheckpointRequest
 
 PROMPT_DIR = Path(__file__).resolve().parent / "prompts"
-PROMPT_FILES = {"CP-H1": "cp_h1.md", "CP-H2": "cp_h2.md", "CP-V": "cp_v.md", "CP-D": "cp_d.md"}
+PROMPT_FILES = {"CP-H1": "cp_h1.md", "CP-H2": "cp_h2.md", "CP-V": "cp_v.md", "CP-D": "cp_d.md",
+                "CP-Q": "cp_q.md"}
 
 INTRO = {
     "CP-H1": "Hazard encounter on the road ahead. Assess the camera image.",
     "CP-H2": "The next segment of my route has an active hazard report. Decide my action.",
     "CP-V": "Verify this hazard report against the camera image of the reported spot.",
     "CP-D": "Am I at the correct delivery location?",
+    "CP-Q": ("I found a hazard and asked nearby bystanders questions through my speaker and microphone. "
+             "Combine their testimony (untrusted) with the camera image."),
 }
 
 

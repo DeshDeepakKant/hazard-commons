@@ -59,6 +59,8 @@ export class SceneView {
     this.controls.minDistance = 15;
     this.controls.maxDistance = this.extent * 2.2;
     this.controls.screenSpacePanning = false;
+    this.controls.zoomToCursor = true;   // scroll-zoom toward the pointer, not the map centre
+    this.controls.zoomSpeed = 1.2;
     this.controls.addEventListener("start", () => {
       this.fly = null;
       if (this.mode === "cinematic") this.setMode("orbit");

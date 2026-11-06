@@ -18,6 +18,7 @@ import { Topbar } from "./ui/topbar";
 import { Dashboards } from "./ui/dashboards";
 import { OrderPage } from "./ui/order";
 import { Timeline } from "./ui/timeline";
+import { DisasterControl } from "./ui/disaster";
 import { el, esc } from "./ui/dom";
 import { LiveSource, fetchMeta, setBrainUnreachable } from "./live";
 import { ReplayPlayer, loadJsonl } from "./replay";
@@ -136,6 +137,7 @@ async function boot(): Promise<void> {
     view.setMode("follow", ids[(cur + 1) % ids.length]);
   };
   topbar.addDronesButton(cycleDrones);
+  if (CONFIG.mode === "live") new DisasterControl({ topbarRoot: topbar.root, dom: view.renderer.domElement, camera: view.camera, scene: view.scene, toast, flyTo: (x, y) => view.flyTo(new THREE.Vector3(x, 0, -y), 180) });
   const leftHost = app.querySelector<HTMLElement>(".left-host")!;
   const dash = new Dashboards(leftHost);
   dash.onRobot = (id) => view.setMode("follow", id);

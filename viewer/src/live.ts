@@ -59,6 +59,28 @@ export async function setBrainUnreachable(on: boolean): Promise<boolean> {
   } catch { return false; }
 }
 
+// ---- "Add a disaster" API (viewer/src/ui/disaster.ts)
+export interface InjectedProp {
+  prop_id: string; type: string; edge_id: string; road_name: string; x: number; y: number;
+  real: boolean; injected: boolean; reported: boolean; hazard_id: string | null; hazard_status: string | null;
+}
+type Injected = { prop_id: string; edge_id: string; road_name: string; type: string; real: boolean };
+
+async function hazardCall<T>(path: string, method: string, body?: unknown): Promise<{ ok: boolean; data?: T; error?: string }> {
+  try {
+    const r = await fetch(`${CONFIG.apiBase}${path}`, {
+      method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, error: typeof j.detail === "string" ? j.detail : `HTTP ${r.status}` };
+    return { ok: true, data: j as T };
+  } catch (e) { return { ok: false, error: (e as Error).message }; }
+}
+export const injectHazard = (b: { type: string; real: boolean; x?: number; y?: number }) => hazardCall<Injected>("/api/hazards", "POST", b);
+export const injectRandomHazard = (real: boolean) => hazardCall<Injected>("/api/hazards/random", "POST", { real });
+export const clearInjectedHazard = (id: string) => hazardCall<{ ok: boolean }>(`/api/hazards/${encodeURIComponent(id)}`, "DELETE");
+export const listHazardProps = () => hazardCall<{ props: InjectedProp[] }>("/api/hazards/props", "GET");
+
 export async function fetchMeta(): Promise<Record<string, unknown> | null> {
   try {
     const r = await fetch(`${CONFIG.apiBase}/api/meta`);

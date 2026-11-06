@@ -4,6 +4,9 @@
 //   ?world=<base url>                    world files (meta.json, roads.json, pois.json, buildings.glb|json)
 //   ?ws=<ws url>  ?api=<http base>       live mode endpoints (default: same origin, proxied in dev)
 //   ?cinematic=1                         start in cinematic camera mode (for video recording)
+//   ?sat=0                               start with the satellite imagery off (default on)
+//   ?top=1                               start with a top-down camera (alignment checks)
+//   ?cam=x,y,dist,azimuthDeg,elevDeg      initial camera (local metres)
 //   ?t=<sim seconds>                     replay: start at this time
 //
 // Env (build time): VITE_WORLD_BASE, VITE_DEFAULT_REPLAY (hosted demo: replay this when no params).
@@ -26,6 +29,9 @@ export const CONFIG = {
   wsUrl: q.get("ws") ?? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`,
   apiBase: (q.get("api") ?? "").replace(/\/$/, ""),
   cinematic: q.get("cinematic") === "1",
+  satellite: q.get("sat") !== "0",
+  topDown: q.get("top") === "1",
+  cam: q.get("cam")?.split(",").map(Number) ?? null,
   startT: q.has("t") ? Number(q.get("t")) : null,
   explicitWorld: q.has("world"),
 };

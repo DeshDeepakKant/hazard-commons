@@ -5,6 +5,7 @@ import { el, fmtClock } from "./dom";
 export interface TopbarHandlers {
   onOutage: (on: boolean) => Promise<boolean>;
   onRoutes: (on: boolean) => void;
+  onSatellite: (on: boolean) => void;
   onCamera: (mode: "orbit" | "cinematic" | "reset") => void;
   onFollow: (id: string | null) => void;
   onOrder: () => void;
@@ -18,6 +19,7 @@ export class Topbar {
   private outage: HTMLInputElement | null;
   private followSel: HTMLSelectElement;
   private robotsKey = "";
+  private satToggle!: HTMLInputElement;
 
   constructor(host: HTMLElement, private h: TopbarHandlers) {
     const live = CONFIG.mode === "live";
@@ -31,6 +33,7 @@ export class Topbar {
       <div class="spacer"></div>
       <div class="ctrls">
         <label class="tog"><input type="checkbox" class="routes" checked> Routes</label>
+        <label class="tog" title="Esri World Imagery on ground and roofs"><input type="checkbox" class="sat" ${CONFIG.satellite ? "checked" : ""}> Satellite</label>
         <select class="follow" title="Follow a robot"><option value="">Follow robot…</option></select>
         <button class="cine" title="Auto-orbit camera for recording (C)">🎬 Cinematic</button>
         <button class="reset" title="Reset view (R)">⟲</button>
@@ -50,6 +53,8 @@ export class Topbar {
       this.outage!.disabled = false;
     });
     this.root.querySelector<HTMLInputElement>("input.routes")!.addEventListener("change", (e) => h.onRoutes((e.target as HTMLInputElement).checked));
+    this.satToggle = this.root.querySelector<HTMLInputElement>("input.sat")!;
+    this.satToggle.addEventListener("change", () => h.onSatellite(this.satToggle.checked));
     this.root.querySelector(".cine")!.addEventListener("click", () => h.onCamera("cinematic"));
     this.root.querySelector(".reset")!.addEventListener("click", () => h.onCamera("reset"));
     this.root.querySelector(".order")!.addEventListener("click", () => h.onOrder());
@@ -59,6 +64,13 @@ export class Topbar {
       this.root.querySelector(".cine")!.classList.toggle("on", d.mode === "cinematic");
       this.followSel.value = d.followId ?? "";
     });
+  }
+
+  /** imagery failed to load: untick and disable the toggle */
+  setSatelliteAvailable(ok: boolean): void {
+    this.satToggle.disabled = !ok;
+    this.satToggle.parentElement!.title = ok ? "Esri World Imagery on ground and roofs" : "Satellite imagery unavailable (offline or blocked)";
+    if (!ok) this.satToggle.checked = false;
   }
 
   setClock(t: number): void { this.clockEl.textContent = fmtClock(t); }

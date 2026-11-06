@@ -4,7 +4,9 @@ import { CONFIG } from "./config";
 import { store, type Card } from "./store";
 import type { ChainTxEvent, Hazard, Order } from "./types";
 import { SceneView } from "./scene/index";
-import { buildGround, buildRoads, loadBuildings, loadWorldData } from "./scene/world";
+import { buildGround, buildRoads, loadBuildings, loadWorldData, setRoadsOverImagery, SAT_MARGIN } from "./scene/world";
+import { Satellite } from "./scene/satellite";
+import { LocalFrame } from "./geo";
 import { Actors } from "./scene/actors";
 import { Robots } from "./scene/robots";
 import { Hazards } from "./scene/hazards";
@@ -31,6 +33,7 @@ app.innerHTML = `
   <div class="bottom-host"></div>
   <footer>
     <span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></span>
+    <span class="sat-credit">Imagery © Esri, Maxar, Earthstar Geographics</span>
     <a href="#" class="credits-link">Photo credits</a>
     <span>ZipKart, MinuteMart and DashKirana are fictional brands.</span>
     <span class="grow"></span>
@@ -77,10 +80,25 @@ async function boot(): Promise<void> {
   }
 
   // ---------------------------------------------------------------- world
+  let topbar: Topbar | undefined;
+  let satReady: boolean | null = null;
   const world = await loadWorldData(setStatus);
   const view = new SceneView(stage, world);
-  view.scene.add(buildGround(world), buildRoads(world));
-  const buildings = await loadBuildings(world, setStatus);
+  const sat = new Satellite(LocalFrame.fromMeta(world.meta as { epsg?: number; origin_utm?: number[] } | null));
+  sat.plan(world.bounds, SAT_MARGIN);
+  const ground = buildGround(world, sat);
+  const roads = buildRoads(world);
+  view.scene.add(ground.group, roads);
+  sat.enabled = CONFIG.satellite;
+  // tiles load in the background; until then (or if they fail) the plain look is shown
+  const applySatellite = () => {
+    ground.setSatellite(sat.enabled);
+    setRoadsOverImagery(roads, sat.active);
+    app.querySelector<HTMLElement>(".sat-credit")!.hidden = !sat.active;
+  };
+  sat.onChange = applySatellite;
+  void sat.load(view.renderer).then((ok) => { satReady = ok; topbar?.setSatelliteAvailable(ok); });
+  const buildings = await loadBuildings(world, setStatus, sat);
   if (buildings) view.scene.add(buildings);
   else console.warn("[world] no buildings found");
   const pois = new Pois(world);
@@ -92,17 +110,15 @@ async function boot(): Promise<void> {
   view.getRobotPos = (id) => robots.position(id);
 
   // ---------------------------------------------------------------- UI
-  const topbar = new Topbar(app.querySelector(".top-host")!, {
+  topbar = new Topbar(app.querySelector(".top-host")!, {
     onOutage: (on) => setBrainUnreachable(on).then((ok) => { if (!ok) toast("Could not reach /api/brain/unreachable", "err"); return ok; }),
     onRoutes: (on) => { robots.showRoutes = on; },
-    onSatellite: (on) => {
-      const sat = view.scene.getObjectByName("satellite-imagery");
-      if (sat) sat.visible = on;
-    },
+    onSatellite: (on) => sat.setEnabled(on),
     onCamera: (m) => { if (m === "reset") view.resetView(); else view.setMode(view.mode === "cinematic" ? "orbit" : "cinematic"); },
     onFollow: (id) => view.setMode(id ? "follow" : "orbit", id),
     onOrder: () => orderPage.toggle(),
   });
+  if (satReady !== null) topbar.setSatelliteAvailable(satReady);
   const leftHost = app.querySelector<HTMLElement>(".left-host")!;
   const dash = new Dashboards(leftHost);
   dash.onRobot = (id) => view.setMode("follow", id);
@@ -204,6 +220,8 @@ async function boot(): Promise<void> {
       if (m?.mock) mockBanner.hidden = false;
     });
   }
+  if (CONFIG.topDown) view.topDown();
+  if (CONFIG.cam && CONFIG.cam.length >= 5 && CONFIG.cam.every(Number.isFinite)) view.setCamera(CONFIG.cam[0], CONFIG.cam[1], CONFIG.cam[2], CONFIG.cam[3], CONFIG.cam[4]);
   if (CONFIG.cinematic) view.setMode("cinematic");
 
   // keyboard

@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { CONFIG } from "../config";
+import type { Satellite } from "./satellite";
 
 export interface Road { id: string; kind: "drive" | "walk" | string; width: number; shape: [number, number][]; name?: string; }
 export interface DarkStore { id: string; operator: string; building_id: string; name: string; x: number; y: number; entrance_node?: string; entrance_xy?: [number, number]; }
@@ -186,7 +187,7 @@ async function buildingsFromGlb(url: string, heights: Map<string, number>): Prom
   }
 }
 
-export async function loadBuildings(w: WorldData, onStatus: (s: string) => void): Promise<THREE.Mesh | null> {
+export async function loadBuildings(w: WorldData, onStatus: (s: string) => void, sat?: Satellite): Promise<THREE.Mesh | null> {
   onStatus("Loading buildings …");
   let geom = await buildingsFromGlb(`${w.base}/buildings.glb`, w.buildingHeight);
   if (!geom) {
@@ -195,6 +196,12 @@ export async function loadBuildings(w: WorldData, onStatus: (s: string) => void)
   }
   if (!geom) return null;
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.05 });
+  if (sat) {
+    // roofs sample the satellite texture by (exact-projection) per-vertex UV; flat normals decide what is a roof
+    if (!geom.getAttribute("normal")) geom.computeVertexNormals();
+    sat.addUvAttribute(geom);
+    sat.patchBuildingMaterial(mat);
+  }
   const mesh = new THREE.Mesh(geom, mat);
   mesh.name = "buildings";
   mesh.matrixAutoUpdate = false;
@@ -271,16 +278,18 @@ export function buildRoads(w: WorldData): THREE.Group {
   return g;
 }
 
-export function buildGround(w: WorldData): THREE.Group {
+export interface Ground { group: THREE.Group; setSatellite: (on: boolean) => void }
+
+/** Plain dark ground (pad + grid) plus an optional satellite-textured plane. */
+export function buildGround(w: WorldData, sat?: Satellite): Ground {
   const g = new THREE.Group();
-  g.name = "ground";
   const cx = (w.bounds.minX + w.bounds.maxX) / 2, cy = (w.bounds.minY + w.bounds.maxY) / 2;
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(9000, 9000),
     new THREE.MeshStandardMaterial({ color: "#161d29", roughness: 1 }),
   );
   plane.rotation.x = -Math.PI / 2;
-  plane.position.set(cx, -0.02, -cy);
+  plane.position.set(cx, -3, -cy);
   g.add(plane);
   // district pad (slightly lighter) under the map
   const sx = w.bounds.maxX - w.bounds.minX + 120, sy = w.bounds.maxY - w.bounds.minY + 120;
@@ -288,32 +297,38 @@ export function buildGround(w: WorldData): THREE.Group {
   pad.rotation.x = -Math.PI / 2;
   pad.position.set(cx, 0.0, -cy);
   g.add(pad);
-
-  // Satellite aerial imagery overlay for Bandra West
-  const satLoader = new THREE.TextureLoader();
-  const satTex = satLoader.load(`${w.base}/satellite.jpg`, (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.generateMipmaps = true;
-    tex.minFilter = THREE.LinearMipmapLinearFilter;
-  });
-  const satMat = new THREE.MeshStandardMaterial({
-    map: satTex,
-    roughness: 0.82,
-    metalness: 0.08,
-  });
-  // Exact UTM bbox dimensions for Bandra West (1703.5m E-W, 1529.2m N-S)
-  const satMesh = new THREE.Mesh(new THREE.PlaneGeometry(1703.5, 1529.2), satMat);
-  satMesh.rotation.x = -Math.PI / 2;
-  satMesh.position.set(0, 0.01, 0);
-  satMesh.name = "satellite-imagery";
-  g.add(satMesh);
-
   const grid = new THREE.GridHelper(Math.max(sx, sy) * 1.6, 60, "#243045", "#1e2838");
-  grid.position.set(cx, 0.015, -cy);
+  grid.position.set(cx, 0.01, -cy);
   (grid.material as THREE.Material).transparent = true;
-  (grid.material as THREE.Material).opacity = 0.2;
+  (grid.material as THREE.Material).opacity = 0.35;
   g.add(grid);
-  return g;
+  let satMesh: THREE.Mesh | null = null;
+  if (sat) {
+    satMesh = sat.buildGround(w.bounds, SAT_MARGIN);
+    satMesh.visible = false;
+    g.add(satMesh);
+  }
+  const setSatellite = (on: boolean) => {
+    if (satMesh && sat) sat.syncGround(satMesh);
+    const useSat = on && !!sat?.active;
+    pad.visible = !useSat;
+    grid.visible = !useSat;
+  };
+  return { group: g, setSatellite };
+}
+
+/** imagery margin around the road extent (m) */
+export const SAT_MARGIN = 120;
+
+/** Roads stay visible over imagery but let the street pattern show through. */
+export function setRoadsOverImagery(roads: THREE.Group, on: boolean): void {
+  roads.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+    if (!m || (o as THREE.LineSegments).isLineSegments) return;
+    m.transparent = on;
+    m.opacity = on ? 0.62 : 1;
+    m.needsUpdate = true;
+  });
 }
 
 /** points along an edge chain, in local coords */

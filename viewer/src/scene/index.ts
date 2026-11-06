@@ -49,7 +49,7 @@ export class SceneView {
     rim.position.set(700, 300, -600);
     this.scene.add(hemi, sun, rim, new THREE.AmbientLight("#ffffff", 0.15));
 
-    this.camera = new THREE.PerspectiveCamera(42, 1, 1, this.extent * 6);
+    this.camera = new THREE.PerspectiveCamera(42, 1, 4, this.extent * 6);
     this.camera.position.copy(this.center).add(new THREE.Vector3(-this.extent * 0.35, this.extent * 0.55, this.extent * 0.6));
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.copy(this.center);
@@ -121,6 +121,25 @@ export class SceneView {
       camFrom: this.camera.position.clone(), camTo: target.clone().add(dir.multiplyScalar(dist)),
       t: 0, dur,
     };
+  }
+
+  /** straight-down view over the whole map (alignment checks) */
+  topDown(): void {
+    this.setMode("orbit");
+    this.fly = null;
+    this.controls.target.copy(this.center);
+    this.camera.position.copy(this.center).add(new THREE.Vector3(0, this.extent * 1.15, 0.001));
+    this.controls.update();
+  }
+
+  /** place the camera by local metres: look at (x, y), distance, azimuth (deg, 0 = from south), elevation (deg) */
+  setCamera(x: number, y: number, dist: number, azimuthDeg: number, elevDeg: number): void {
+    this.setMode("orbit");
+    this.fly = null;
+    const az = (azimuthDeg * Math.PI) / 180, el = (elevDeg * Math.PI) / 180;
+    this.controls.target.set(x, 0, -y);
+    this.camera.position.set(x + Math.sin(az) * Math.cos(el) * dist, Math.sin(el) * dist, -y + Math.cos(az) * Math.cos(el) * dist);
+    this.controls.update();
   }
 
   resetView(): void {

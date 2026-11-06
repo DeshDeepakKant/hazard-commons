@@ -74,3 +74,15 @@ The hosted replay is this exact run (state frames thinned 4:1): https://hazard-c
 ## Earlier probes
 - Router spike request id `e3deff71-90f3-4022-858d-f483bbf32fab` (provider `0xf4FB8d2bD856e672b5f9848b0eD235A20079B250`).
 - Storage probe root `0x3526e7fde02914bd22b2735c7b6148911aac1a6b5d016d37d7125fefe5a05791`.
+
+## Why the UI shows "TEE: –" (researched 2026-11-06)
+- `router-api.0g.ai` is 0G's E2EE gateway. It always seals `0gm-1.0-35b-a3b` (`x-0g-e2ee: sealed`), whatever trust mode is requested ([mainnet.env](https://github.com/0gfoundation/0g-pc-e2ee/blob/main/deploy/phala/env/mainnet.env)).
+- For sealed requests the router deliberately omits `x_0g_trace.tee_verified`: it would be checking a different signing scheme. Authentication is done by the attested gateway's bind check ([async-e2ee-plan.md](https://github.com/0gfoundation/0g-pc-e2ee/blob/main/docs/design/async-e2ee-plan.md), [trust-chain.md](https://github.com/0gfoundation/0g-pc-e2ee/blob/main/docs/design/trust-chain.md)).
+- The deployed gateway release (release-2026.11.05.1) sets `ZG_GATEWAY_VERIFY_RESPONSES=true`. Our reading of that config, not a documented guarantee: a sealed 200 response has had its TEE signature checked against the on-chain signer.
+- So we show "–" (not reported) rather than claiming "verified". The gateway itself can be attested with `GET https://router-api.0g.ai/evidence?nonce=…` ([verifying-the-gateway.md](https://github.com/0gfoundation/0g-pc-e2ee/blob/main/docs/verifying-the-gateway.md)).
+
+## Router outage on 2026-11-06 (from ~12:29 IST)
+- Every chat call returned 502 `fetch provider quote … compute-network-20.integratenetwork.work … EOF` (e.g. request id `1dc9750ac183ce18`).
+- The only provider for `0gm-1.0-35b-a3b` (`0xf4FB…B250`) was listed unhealthy. Its host dropped the TLS handshake.
+- The only healthy TeeML chat model, `glm-5.3`, is text-only, so it can't do the vision checkpoints. We did not switch models.
+- Robots safe-stopped as designed. No decision was faked.

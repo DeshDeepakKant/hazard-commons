@@ -28,6 +28,7 @@ export class Store {
   cards: Card[] = [];
   private cardByReq = new Map<string, Card>();
   hazards = new Map<string, Hazard>();
+  private pruneHazards = false;
   orders = new Map<string, Order>();
   txs = new Map<string, ChainTxEvent>();
   storage: StorageEvent[] = [];
@@ -61,6 +62,12 @@ export class Store {
         }
         // the snapshot carries the full hazard list: keep the map in sync
         let changed = false;
+        if (this.pruneHazards) {
+          // scenario loop: a new cycle started, so hazards retired by the engine leave the map
+          const live = new Set((s.hazards ?? []).map((h) => h.id));
+          for (const id of [...this.hazards.keys()]) if (!live.has(id)) { this.hazards.delete(id); changed = true; }
+          this.pruneHazards = false;
+        }
         for (const h of s.hazards ?? []) {
           const old = this.hazards.get(h.id);
           if (!old || old.status !== h.status || old.confirms !== h.confirms || old.disputes !== h.disputes || old.tx_hash !== h.tx_hash) {
@@ -92,6 +99,8 @@ export class Store {
         const d = env.data as { level?: string; msg?: string } | string;
         const line = typeof d === "string" ? { t: env.t, level: "info", msg: d }
           : { t: env.t, level: d.level ?? "info", msg: d.msg ?? JSON.stringify(d) };
+        const m = /^scenario cycle (\d+) started/.exec(line.msg);
+        if (m && Number(m[1]) >= 2) this.pruneHazards = true;
         this.logs.push(line);
         if (this.logs.length > 200) this.logs.shift();
         this.emit("log", line);

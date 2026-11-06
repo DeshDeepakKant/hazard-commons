@@ -296,6 +296,9 @@ class Engine:
         # storage & episode log
         if storage is not None:
             self.storage: Optional[Storage] = storage
+        elif os.environ.get("HC_STORAGE", "").lower() == "off":
+            log.info("HC_STORAGE=off: episode records stored locally only")
+            self.storage = None
         else:
             try:
                 self.storage = ZGStorage()
@@ -377,14 +380,17 @@ class Engine:
             return hc
 
         if galileo_path.exists():
-            try:
-                hc = HazardChain.from_deployment("galileo", on_tx=self._on_chain_tx,
-                                                 sim_time_fn=lambda: self.sim_time)
-                if hc.w3.is_connected():
-                    hc.start_polling()
-                    return hc
-            except Exception as e:
-                log.warning("failed to connect to Galileo chain (%s)", e)
+            for attempt in range(1, 6):   # the public RPC blips: retry before giving up
+                try:
+                    hc = HazardChain.from_deployment("galileo", on_tx=self._on_chain_tx,
+                                                     sim_time_fn=lambda: self.sim_time)
+                    if hc.w3.is_connected():
+                        hc.start_polling()
+                        return hc
+                    log.warning("Galileo RPC not reachable (attempt %d/5)", attempt)
+                except Exception as e:
+                    log.warning("failed to connect to Galileo chain (attempt %d/5): %s", attempt, e)
+                time.sleep(3)
 
         if is_demo():
             raise RuntimeError(

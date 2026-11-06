@@ -5,3 +5,4 @@ import os
 
 os.environ["HC_CHAIN"] = "local"
 os.environ.pop("DEMO", None)
+os.environ["HC_STORAGE"] = "off"   # never upload to real 0G Storage from tests

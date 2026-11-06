@@ -256,6 +256,37 @@
    "zg_request_ids": [
     "MOCK-1"
    ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "run-1793932356-R-04"
+   ],
+   "error": null,
+   "explorer_url": "https://storagescan-galileo.0g.ai/tx/0xfd63c2fceafb77edebc4f37ea168ac1fc44ac7b9296b0d8e7c4858133651f0aa",
+   "file_sha256": "20ddf2627b8258da3b9af6e8ead3be68b58ed8c8dfd179368398e667714602f5",
+   "local_path": "logs/runs/run-1793932356/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "3b9cd820040aabd8d5b1ccdf42feee7340b00798c478a633c3eb6bc81f78d460"
+   ],
+   "robot_id": "R-04",
+   "root_hash": "0x52c16ae352b0898f45b3f3916ea89567e266311819aa69fb0d6e84970017537f",
+   "run_id": "run-1793932356",
+   "status": "uploaded",
+   "tx_hash": "0xfd63c2fceafb77edebc4f37ea168ac1fc44ac7b9296b0d8e7c4858133651f0aa",
+   "uploaded_at": 1793932373.1448345,
+   "written_at": 1793932359.7193174,
+   "zg_request_ids": [
+    "MOCK-1"
+   ]
   }
  ],
  "runs": [

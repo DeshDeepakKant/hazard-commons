@@ -850,7 +850,9 @@ class Engine:
     def _process_chain_events(self) -> None:
         for ev in self.chain.poll_events():
             ev_name = ev.get("event")
-            hid = str(ev.get("hazard_id") or "")
+            hid = str((ev.get("args") or {}).get("hazardId") or ev.get("hazard_id") or "")
+            if not hid.isdigit():
+                continue   # operator/robot registration or delivery events carry no hazard id
             hz = self.chain.hazard(hid)
             if not hz:
                 continue

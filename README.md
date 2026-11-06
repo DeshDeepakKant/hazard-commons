@@ -68,7 +68,7 @@ Verified on 2026-11-06: a real Router call to `0gm-1.0-35b-a3b` with a composite
 - provider: `0xf4FB8d2bD856e672b5f9848b0eD235A20079B250`; response header `x-0g-e2ee: sealed`
 - `tee_verified` is **not** reported for sealed requests (per the Router docs), so it is shown as "–" in the UI, not as verified.
 
-Contract addresses, Storage root hashes and transaction links: see `docs/EVIDENCE.md` (filled from the real Galileo run).
+HazardRegistry on 0G Galileo: [`0x2098b78B804a9506f7A9074FBd35C76906421Ba0`](https://chainscan-galileo.0g.ai/address/0x2098b78B804a9506f7A9074FBd35C76906421Ba0). Live demo (replay of the real run): https://hazard-commons.vercel.app/ . All request ids, transaction hashes and Storage root hashes: `docs/EVIDENCE.md`.
 
 ## Disclosures
 - **Perception.** PyBullet renders look like toy scenes, so at hazard checkpoints a real CC-licensed photo of the hazard type is composited with the rendered frame and sent to the vision model. Photo credits: `assets/hazard_photos/ATTRIBUTION.md`.

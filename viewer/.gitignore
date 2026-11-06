@@ -2,3 +2,4 @@ node_modules/
 dist/
 .vercel/
 public/photo-credits.md
+.vercel

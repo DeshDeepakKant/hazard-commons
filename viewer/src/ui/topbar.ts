@@ -2,6 +2,7 @@
 import { CONFIG } from "../config";
 import { el, fmtClock } from "./dom";
 import { openVerify } from "./verify";
+import { fetchSpeed, liveSpeed, setSpeed } from "../live";
 
 export interface TopbarHandlers {
   onOutage: (on: boolean) => Promise<boolean>;
@@ -31,6 +32,7 @@ export class Topbar {
       <div class="clock" title="simulation time"><span>SIM</span><b>00:00</b></div>
       <div class="brain on" title="StateSnapshot.brain_online"><span class="pulse"></span><span class="txt">0G brain online</span></div>
       ${live ? `<label class="switch" title="POST /api/brain/unreachable"><input type="checkbox" class="outage"><span class="slider"></span><span>Simulate 0G outage</span></label>` : ""}
+      ${live ? `<div class="speed" title="Simulation speed. The target is what you ask for; the number is what this computer actually reaches."><span>SPEED</span>${[1, 5, 10, 15, 20, 30].map((x) => `<button data-x="${x}">${x}×</button>`).join("")}<i class="speed-actual">–</i></div>` : ""}
       <div class="spacer"></div>
       <div class="ctrls">
         <label class="tog"><input type="checkbox" class="routes" checked> Routes</label>
@@ -62,11 +64,31 @@ export class Topbar {
     this.root.querySelector(".order")!.addEventListener("click", () => h.onOrder());
     this.root.querySelector(".verify")!.addEventListener("click", () => openVerify());
     this.followSel.addEventListener("change", () => h.onFollow(this.followSel.value || null));
+    if (live) this.initSpeed();
     window.addEventListener("cammode", (e) => {
       const d = (e as CustomEvent).detail as { mode: string; followId: string | null };
       this.root.querySelector(".cine")!.classList.toggle("on", d.mode === "cinematic");
       this.followSel.value = d.followId ?? "";
     });
+  }
+
+  private initSpeed(): void {
+    const box = this.root.querySelector<HTMLElement>(".speed")!;
+    const actual = box.querySelector<HTMLElement>(".speed-actual")!;
+    const paint = (i: { target: number; actual: number } | null) => {
+      if (!i) { actual.textContent = "–"; return; }
+      liveSpeed.target = i.target;
+      box.querySelectorAll<HTMLButtonElement>("button").forEach((b) => b.classList.toggle("on", Number(b.dataset.x) === Math.round(i.target)));
+      const capped = i.actual > 0 && i.actual < i.target * 0.85;
+      actual.textContent = `now ${i.actual.toFixed(1)}×${capped ? " (CPU limit)" : ""}`;
+      actual.classList.toggle("capped", capped);
+    };
+    box.addEventListener("click", async (e) => {
+      const b = (e.target as HTMLElement).closest("button");
+      if (b) paint(await setSpeed(Number(b.dataset.x)));
+    });
+    const poll = async () => paint(await fetchSpeed());
+    void poll(); setInterval(poll, 2000);
   }
 
   /** imagery failed to load: untick and disable the toggle */

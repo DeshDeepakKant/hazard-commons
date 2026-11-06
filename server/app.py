@@ -22,6 +22,8 @@ class EngineControl(Protocol):
     def place_order(self, operator: str, building_id: str, items: list[str],
                     customer_name: str) -> dict[str, Any]: ...
     def set_brain_unreachable(self, on: bool) -> None: ...
+    def set_speed(self, x: float) -> dict[str, Any]: ...
+    def speed(self) -> dict[str, Any]: ...
     def snapshot_meta(self) -> dict[str, Any]: ...   # operators, pois summary, run info
 
 
@@ -73,6 +75,26 @@ def brain_unreachable(t: ToggleIn) -> dict[str, Any]:
         raise HTTPException(503, "sim engine not running")
     _engine.set_brain_unreachable(t.unreachable)
     return {"ok": True, "unreachable": t.unreachable}
+
+
+class SpeedIn(BaseModel):
+    speed: float
+
+
+@app.get("/api/speed")
+def get_speed() -> dict[str, Any]:
+    if _engine is None:
+        raise HTTPException(503, "sim engine not running")
+    return _engine.speed()
+
+
+@app.post("/api/speed")
+def set_speed(s: SpeedIn) -> dict[str, Any]:
+    if _engine is None:
+        raise HTTPException(503, "sim engine not running")
+    if not 0.1 <= s.speed <= 100:
+        raise HTTPException(400, "speed must be between 0.1 and 100")
+    return _engine.set_speed(s.speed)
 
 
 @app.websocket("/ws")

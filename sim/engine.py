@@ -1167,8 +1167,16 @@ class Engine:
                 if r.paused:
                     r.enter_safe_stop("0G brain unreachable (sim toggle)")
 
+    def set_speed(self, x: float) -> dict[str, Any]:
+        self.clock.set_speed(max(0.0, min(float(x), 100.0)))
+        return self.speed()
+
+    def speed(self) -> dict[str, Any]:
+        return {"target": self.clock.realtime_factor, "actual": round(self.clock.achieved, 2)}
+
     def snapshot_meta(self) -> dict[str, Any]:
         return {
+            "speed": self.speed(),
             "engine": True,
             "run_id": self.run_id,
             "sim_time": round(self.sim_time, 2),

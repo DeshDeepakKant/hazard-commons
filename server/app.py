@@ -25,6 +25,13 @@ class EngineControl(Protocol):
     def set_speed(self, x: float) -> dict[str, Any]: ...
     def speed(self) -> dict[str, Any]: ...
     def snapshot_meta(self) -> dict[str, Any]: ...   # operators, pois summary, run info
+    # --- "Add a disaster" (appended)
+    def inject_hazard(self, type: str, edge_id: Optional[str] = None, x: Optional[float] = None,
+                      y: Optional[float] = None, real: bool = True,
+                      severity: Optional[float] = None) -> dict[str, Any]: ...
+    def inject_random(self, real: bool = True, type: Optional[str] = None) -> dict[str, Any]: ...
+    def clear_injected(self, prop_id: str) -> dict[str, Any]: ...
+    def list_props(self) -> list[dict[str, Any]]: ...
 
 
 _engine: Optional[EngineControl] = None
@@ -120,6 +127,72 @@ async def ws(websocket: WebSocket) -> None:
         pass
     finally:
         BUS.unsubscribe_async(q)
+
+
+# ---------------------------------------------------------------- "Add a disaster" (inject) API
+class HazardIn(BaseModel):
+    type: str
+    edge_id: Optional[str] = None
+    x: Optional[float] = None
+    y: Optional[float] = None
+    real: bool = True
+    severity: Optional[float] = None
+
+
+class RandomHazardIn(BaseModel):
+    real: bool = True
+    type: Optional[str] = None
+
+
+_HAZARD_TYPES = ("accident", "road_works", "waterlogging")
+
+
+def _inject_call(fn: Any, *a: Any, **kw: Any) -> Any:
+    try:
+        return fn(*a, **kw)
+    except KeyError as e:
+        raise HTTPException(404, f"unknown injected hazard {e}")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except TimeoutError:
+        raise HTTPException(503, "sim loop did not apply the request in time")
+
+
+@app.post("/api/hazards")
+def inject_hazard(h: HazardIn) -> dict[str, Any]:
+    if _engine is None:
+        raise HTTPException(503, "sim engine not running")
+    if h.type not in _HAZARD_TYPES:
+        raise HTTPException(422, f"type must be one of {list(_HAZARD_TYPES)}")
+    if h.edge_id is None and (h.x is None or h.y is None):
+        raise HTTPException(422, "give edge_id or both x and y")
+    if h.severity is not None and not 0.0 <= h.severity <= 1.0:
+        raise HTTPException(422, "severity must be within 0..1")
+    return _inject_call(_engine.inject_hazard, h.type, h.edge_id, h.x, h.y, h.real, h.severity)
+
+
+@app.post("/api/hazards/random")
+def inject_random_hazard(h: Optional[RandomHazardIn] = None) -> dict[str, Any]:
+    if _engine is None:
+        raise HTTPException(503, "sim engine not running")
+    h = h or RandomHazardIn()
+    if h.type is not None and h.type not in _HAZARD_TYPES:
+        raise HTTPException(422, f"type must be one of {list(_HAZARD_TYPES)}")
+    return _inject_call(_engine.inject_random, h.real, h.type)
+
+
+@app.get("/api/hazards/props")
+def list_hazard_props() -> dict[str, Any]:
+    if _engine is None:
+        raise HTTPException(503, "sim engine not running")
+    return {"props": _engine.list_props()}
+
+
+@app.delete("/api/hazards/{prop_id}")
+def clear_injected_hazard(prop_id: str) -> dict[str, Any]:
+    if _engine is None:
+        raise HTTPException(503, "sim engine not running")
+    return _inject_call(_engine.clear_injected, prop_id)
 
 
 # world artifacts (glb, road graph, pois) for the dev viewer

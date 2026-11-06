@@ -327,6 +327,12 @@ class Engine:
         self.reported_props: set[str] = set()
         self.verified_props: set[str] = set()
         self.blocked_edges: set[str] = set()
+        # user-injected disasters ("Add a disaster"): queued by API threads, applied in step()
+        self._inject_q: list[tuple[Callable[[], Any], "Future[Any]"]] = []
+        self._inject_lock = threading.Lock()
+        self._sim_thread: Optional[int] = None
+        self._inject_seq = 0
+        self.injected: dict[str, dict[str, Any]] = {}
         self.robot_blocked_edges: dict[str, set[str]] = defaultdict(set)
         self.robot_decided_hazards: dict[str, set[str]] = defaultdict(set)
         self.robot_seq: dict[str, int] = defaultdict(int)
@@ -505,6 +511,202 @@ class Engine:
     def remove_prop(self, prop_id: str) -> None:
         self.props.pop(prop_id, None)
         self.world.remove_prop(prop_id)
+
+    # ------------------------------------------------------------------ injected disasters
+    INJECT_TYPES = ("accident", "road_works", "waterlogging")
+    INJECT_PHOTOS = {"accident": "accident_1.jpg", "waterlogging": "waterlogging_1.jpg",
+                     "road_works": None}   # same choices as sim/scenario.py
+
+    def _on_sim_thread(self) -> bool:
+        """True when applying directly is safe: caller is the sim thread, or no loop has run."""
+        return self._sim_thread is None or self._sim_thread == threading.get_ident()
+
+    def _run_on_sim(self, fn: Callable[[], Any], timeout: float = 10.0) -> Any:
+        """Run fn inside step() (PyBullet/SUMO are not thread-safe); re-raises its exception."""
+        if self._on_sim_thread():
+            return fn()
+        fut: "Future[Any]" = Future()
+        with self._inject_lock:
+            self._inject_q.append((fn, fut))
+        return fut.result(timeout=timeout)
+
+    def _drain_injections(self) -> None:
+        with self._inject_lock:
+            q, self._inject_q = self._inject_q, []
+        for fn, fut in q:
+            try:
+                fut.set_result(fn())
+            except Exception as e:   # noqa: BLE001 - handed back to the API caller
+                fut.set_exception(e)
+
+    def nearest_drive_edge(self, x: float, y: float) -> tuple[str, float, float, float]:
+        """Snap (x, y) to the nearest drive edge: (edge_id, px, py, dist_m). The point is moved
+        onto the rovers' driving line so the prop sits where rovers actually drive."""
+        import numpy as np
+        pl = self.world.planner
+        best: tuple[float, str, float, float] = (1e18, "", 0.0, 0.0)
+        p = np.array([x, y], dtype=float)
+        for eid, e in pl.edges.items():
+            sh = e["shape"]
+            if len(sh) < 2:
+                continue
+            a, b = sh[:-1], sh[1:]
+            ab = b - a
+            t = np.clip(((p - a) * ab).sum(1) / np.maximum((ab * ab).sum(1), 1e-9), 0, 1)
+            q = a + t[:, None] * ab
+            d = np.linalg.norm(q - p, axis=1)
+            i = int(np.argmin(d))
+            if d[i] < best[0]:
+                n = np.array([-ab[i][1], ab[i][0]]) / max(float(np.linalg.norm(ab[i])), 1e-9)
+                q2 = q[i] + n * pl.half_width(eid) * pl.offset_frac
+                best = (float(d[i]), eid, float(q2[0]), float(q2[1]))
+        if not best[1]:
+            raise ValueError("no drive edge in the road graph")
+        return best[1], best[2], best[3], best[0]
+
+    def inject_hazard(self, type: str, edge_id: Optional[str] = None, x: Optional[float] = None,
+                      y: Optional[float] = None, real: bool = True,
+                      severity: Optional[float] = None,
+                      reporter_op: str = "DashKirana") -> dict[str, Any]:
+        """Place a user disaster as a HazardProp on the nearest drive edge. Real: a physical
+        prop; rovers meet it and run the normal CP-H1 (0G) -> report -> CP-V -> CP-H2 flow.
+        Not real: nothing physical; `reporter_op` posts a FAKE report (no 0G call, honestly
+        marked) that rival drones verify and dispute. The edge is NOT pre-blocked: blocking comes
+        from the genuine report/verify flow, as for the scripted hazards."""
+        if type not in self.INJECT_TYPES:
+            raise ValueError(f"type must be one of {self.INJECT_TYPES}")
+        if edge_id is None and (x is None or y is None):
+            raise ValueError("give edge_id or x and y")
+        if severity is not None and not 0.0 <= float(severity) <= 1.0:
+            raise ValueError("severity must be within 0..1")
+        if edge_id is not None and edge_id not in self.world.planner.edges:
+            raise ValueError(f"unknown drive edge {edge_id}")
+        return self._run_on_sim(lambda: self._inject_now(type, edge_id, x, y, bool(real),
+                                                        severity, reporter_op))
+
+    def _inject_now(self, type: str, edge_id: Optional[str], x: Optional[float],
+                    y: Optional[float], real: bool, severity: Optional[float],
+                    reporter_op: str) -> dict[str, Any]:
+        pl = self.world.planner
+        snapped = 0.0
+        if x is not None and y is not None:
+            if edge_id is None:
+                edge_id, px, py, snapped = self.nearest_drive_edge(float(x), float(y))
+            else:
+                if edge_id not in pl.edges:
+                    raise ValueError(f"unknown drive edge {edge_id}")
+                px, py = float(x), float(y)
+        else:
+            if edge_id not in pl.edges:
+                raise ValueError(f"unknown drive edge {edge_id}")
+            sh = pl.edge_shape(edge_id)
+            _, px, py, _ = self.nearest_drive_edge(*(float(v) for v in sh[len(sh) // 2]))
+        self._inject_seq += 1
+        pid = f"P-user-{self._inject_seq}"
+        while pid in self.props:
+            self._inject_seq += 1
+            pid = f"P-user-{self._inject_seq}"
+        prop = HazardProp(id=pid, edge_id=edge_id, type=type, x=px, y=py, real=real,
+                          photo=self.INJECT_PHOTOS[type] if real else None)
+        self.add_prop(prop)
+        sev = float(severity) if severity is not None else 0.75
+        meta = {"prop_id": pid, "edge_id": edge_id, "road_name": pl.edges[edge_id].get("name") or "",
+                "type": type, "real": real, "x": round(px, 2), "y": round(py, 2),
+                "snapped_m": round(snapped, 1), "injected_at": round(self.sim_time, 1),
+                "severity": sev, "reporter_op": None}
+        if not real:
+            ops = [r for r in self.world.robots.values()
+                   if r.kind == "rover" and r.operator == reporter_op]
+            rid = sorted(r.id for r in ops)[0] if ops else "R-07"
+            fut = self.report_hazard(operator=reporter_op, robot_id=rid, edge_id=edge_id,
+                                     hazard_type=type, severity=sev, evidence_root=None,
+                                     zg_request_id="FAKE-NO-0G-CALL", passable_for=[])
+            self.schedule_verification(prop, reporter_op=reporter_op, hazard_type=type,
+                                       severity=sev, zg_request_id="FAKE-NO-0G-CALL",
+                                       report_future=fut)
+            meta["reporter_op"] = reporter_op
+        self.injected[pid] = meta
+        log.warning("[inject] %s %s on %s (%s) at (%.1f, %.1f)", "REAL" if real else "FAKE",
+                    type, edge_id, meta["road_name"], px, py)
+        return {"prop_id": pid, "edge_id": edge_id, "road_name": meta["road_name"], "type": type,
+                "real": real, "x": meta["x"], "y": meta["y"], "snapped_m": meta["snapped_m"]}
+
+    def inject_random(self, real: bool = True, type: Optional[str] = None) -> dict[str, Any]:
+        """Random disaster, preferring an edge ahead on a moving rover's route (visible effect)."""
+        if type is not None and type not in self.INJECT_TYPES:
+            raise ValueError(f"type must be one of {self.INJECT_TYPES}")
+        return self._run_on_sim(lambda: self._inject_random_now(real, type))
+
+    def _inject_random_now(self, real: bool, type: Optional[str]) -> dict[str, Any]:
+        from sim.scenario import MOVING, along, edge_spans, point_at
+        rnd = random.SystemRandom()
+        htype = type or rnd.choice(self.INJECT_TYPES)
+        used = {p.edge_id for p in self.props.values()}
+        edges = self.world.planner.edges
+        cands: list[tuple[str, float, float]] = []
+        for r in self.world.robots.values():
+            if not isinstance(r, Rover) or r.route is None or r.arrived or r.paused \
+                    or r.fsm_state not in MOVING:
+                continue
+            x, y, *_ = r.pose()
+            s_r = along(r.route, (x, y))
+            for eid, s0, s1 in edge_spans(r.route):
+                if eid in used or eid not in edges or (s1 - s0) < 15.0 or s0 < s_r + 25.0 \
+                        or s0 > s_r + 300.0:
+                    continue
+                px, py = point_at(r.route, s0 + min(8.0, (s1 - s0) / 2))
+                cands.append((eid, px, py))
+        if cands:
+            eid, px, py = rnd.choice(cands)
+            return self._inject_now(htype, eid, px, py, real, None, "DashKirana")
+        pool = [e for e, v in edges.items() if e not in used and v["length"] >= 20]
+        if not pool:
+            raise ValueError("no free drive edge available")
+        return self._inject_now(htype, rnd.choice(pool), None, None, real, None, "DashKirana")
+
+    def clear_injected(self, prop_id: str) -> dict[str, Any]:
+        """Remove a user-injected disaster. A confirmed on-chain hazard on its edge is cleared
+        through the chain (reopens SUMO and unblocks via the normal event path); otherwise the
+        edge is unblocked directly."""
+        if prop_id not in self.injected:
+            raise KeyError(prop_id)
+        return self._run_on_sim(lambda: self._clear_now(prop_id))
+
+    def _clear_now(self, prop_id: str) -> dict[str, Any]:
+        meta = self.injected.pop(prop_id, None)
+        if meta is None:
+            raise KeyError(prop_id)
+        self.remove_prop(prop_id)
+        self.reported_props.discard(prop_id)
+        self.verification_queue[:] = [v for v in self.verification_queue if v["prop"].id != prop_id]
+        eid = meta["edge_id"]
+        cleared = []
+        for h in self.run_hazards():
+            if h.edge_id == eid and h.status == "confirmed":
+                self.chain.clear_hazard(operator=h.reporter_operator or "MinuteMart", hazard_id=h.id)
+                cleared.append(h.id)
+        if not cleared and not any(p.edge_id == eid for p in self.props.values()):
+            self.unblock_edge(eid)
+            if self.traffic_bridge:
+                for se in self.edge_to_sumo_edges.get(eid, []):
+                    self.traffic_bridge.reopen_edge(se)
+        return {"ok": True, "prop_id": prop_id, "edge_id": eid, "cleared_hazard_ids": cleared}
+
+    def list_props(self) -> list[dict[str, Any]]:
+        hz: dict[str, Hazard] = {}
+        for h in self.run_hazards():
+            hz.setdefault(h.edge_id, h)
+        out = []
+        for p in list(self.props.values()):
+            h = hz.get(p.edge_id)
+            m = self.injected.get(p.id, {})
+            out.append({"prop_id": p.id, "type": p.type, "edge_id": p.edge_id, "x": round(p.x, 2),
+                        "y": round(p.y, 2), "real": p.real, "injected": p.id in self.injected,
+                        "road_name": m.get("road_name")
+                        or (self.world.planner.edges.get(p.edge_id, {}).get("name") or ""),
+                        "reported": p.id in self.reported_props or (not p.real and bool(m)),
+                        "hazard_id": h.id if h else None, "hazard_status": h.status if h else None})
+        return out
 
     # ------------------------------------------------------------------ edge blocking
     def block_edge(self, edge_id: str) -> None:
@@ -1094,6 +1296,8 @@ class Engine:
     def step(self, dt: Optional[float] = None) -> None:
         """Advance one fixed control tick."""
         dt = float(dt or self.dt)
+        self._sim_thread = threading.get_ident()
+        self._drain_injections()
         self.sim_time += dt
 
         # 1. SUMO traffic step & mirror to PyBullet

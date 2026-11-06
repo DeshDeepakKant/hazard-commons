@@ -63,6 +63,17 @@ scripts/run_demo.sh --traffic --loop                  # same, replays the story 
 .venv/bin/python scripts/test_safestop.py             # safe-stop proof
 ```
 
+## Inject a disaster
+
+In live mode the top bar has a **Disaster** button: pick accident / road works / waterlogging, then
+**Random disaster** (placed ahead of a moving rover) or **Place on map** (click anywhere; it snaps to the
+nearest drivable road; Esc cancels). A rover that reaches it runs the normal flow with real 0G calls:
+CP-H1 photo decision, on-chain report, rival-drone CP-V verification, others reroute at CP-H2, SUMO
+traffic closes the edge. Tick **Fake report** to report a hazard that is not there and watch rivals dispute
+it. The list in the popover clears a disaster. REST: `POST /api/hazards`, `POST /api/hazards/random`,
+`GET /api/hazards/props`, `DELETE /api/hazards/{prop_id}`. The edge is not pre-blocked: closures come only
+from the genuine report/verify flow.
+
 ## 0G evidence
 Verified on 2026-11-06: a real Router call to `0gm-1.0-35b-a3b` with a composited accident photo returned a valid verdict in ~7 s.
 - request id (`x_0g_trace.request_id`): `e3deff71-90f3-4022-858d-f483bbf32fab`

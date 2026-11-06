@@ -88,20 +88,35 @@ class BodyWorld:
         self.planner: Optional["RoadPlanner"] = None
         self.sim_time = 0.0
 
-        if boxes is not None:
-            self.load_boxes(boxes)
+        g = None
         if road_graph is not None:
             from sim.controllers.planner import RoadPlanner
             g = road_graph if isinstance(road_graph, dict) else json.loads(Path(road_graph).read_text())
             self.planner = RoadPlanner(g)
-            if draw_roads:
-                self._draw_roads(g)
+        self.road_intruding_boxes: list[str] = []
+        if boxes is not None:
+            self.load_boxes(boxes)
+        if g is not None and draw_roads:
+            self._draw_roads(g)
 
     # ------------------------------------------------------------------ static world
     def load_boxes(self, boxes: Union[str, Path, list]) -> int:
         if not isinstance(boxes, list):
             boxes = json.loads(Path(boxes).read_text())
         c = self.client
+        # Building boxes are oriented bounding boxes of OSM footprints; some overhang the
+        # carriageway and would stop rovers forever (lidar reflex). Those stay visible but get
+        # no collision shape (rovers only ever drive on the road graph).
+        solid, ghost = self._split_road_intruders(boxes)
+        self.road_intruding_boxes = [b["id"] for b in ghost]
+        for b in ghost:
+            he = [float(v) for v in b["half_extents"]]
+            vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he, rgbaColor=[0.7, 0.68, 0.62, 1],
+                                      physicsClientId=c)
+            self.static_ids[b["id"]] = p.createMultiBody(
+                0, -1, vis, [float(v) for v in b["center"]], _quat_yaw(float(b.get("yaw", 0.0))),
+                physicsClientId=c)
+        boxes = solid
         # 16 boxes per compound body (createCollisionShapeArray/VisualShapeArray size limit):
         # PyBullet pays a per-body cost every step, ~1.2 us per body (2k bodies = ~2.5 ms/step).
         K = 16
@@ -125,6 +140,43 @@ class BodyWorld:
             for b in ch:
                 self.static_ids[b["id"]] = bid
         return len(boxes)
+
+    def _split_road_intruders(self, boxes: list, clearance: float = 0.6) -> tuple[list, list]:
+        """(solid, intruding): a box intrudes if a point of a drive edge's driving band (centre
+        +- half width + clearance, sampled every ~1 m) lies inside it."""
+        if self.planner is None or not boxes:
+            return list(boxes), []
+        pts = []
+        for e in self.planner.edges.values():
+            sh = np.asarray(e["shape"], dtype=float)
+            hw = self.planner.half_width(e["id"]) + clearance
+            for a, b in zip(sh[:-1], sh[1:]):
+                L = float(np.linalg.norm(b - a))
+                if L < 1e-6:
+                    continue
+                d = (b - a) / L
+                n = np.array([-d[1], d[0]])
+                for t in np.linspace(0.0, L, max(2, int(L) + 1)):
+                    q = a + d * t
+                    for off in (-hw, -hw / 2, 0.0, hw / 2, hw):
+                        pts.append(q + n * off)
+        P = np.asarray(pts)
+        solid, ghost = [], []
+        for bx in boxes:
+            cx, cy, _ = (float(v) for v in bx["center"])
+            hx, hy, _ = (float(v) for v in bx["half_extents"])
+            yaw = float(bx.get("yaw", 0.0))
+            r = math.hypot(hx, hy)
+            near = P[(np.abs(P[:, 0] - cx) <= r) & (np.abs(P[:, 1] - cy) <= r)]
+            if len(near):
+                dx, dy = near[:, 0] - cx, near[:, 1] - cy
+                lx = dx * math.cos(yaw) + dy * math.sin(yaw)
+                ly = -dx * math.sin(yaw) + dy * math.cos(yaw)
+                if np.any((np.abs(lx) < hx) & (np.abs(ly) < hy)):
+                    ghost.append(bx)
+                    continue
+            solid.append(bx)
+        return solid, ghost
 
     def _draw_roads(self, g: dict) -> None:
         """Visual-only dark strips for drive edges (multi-shape bodies, 16 segments each)."""

@@ -17,6 +17,7 @@ import { openVerify, setVerifySource } from "./ui/verify";
 import { Topbar } from "./ui/topbar";
 import { Dashboards } from "./ui/dashboards";
 import { OrderPage } from "./ui/order";
+import { initHelp } from "./ui/help";
 import { Timeline } from "./ui/timeline";
 import { el, esc } from "./ui/dom";
 import { LiveSource, fetchMeta, setBrainUnreachable } from "./live";
@@ -139,6 +140,8 @@ async function boot(): Promise<void> {
   const leftHost = app.querySelector<HTMLElement>(".left-host")!;
   const dash = new Dashboards(leftHost);
   dash.onRobot = (id) => view.setMode("follow", id);
+  dash.onHazard = (id) => { const p = hazards.position(id); if (p) { view.setMode("orbit"); view.flyTo(p, 180); } };
+  initHelp(app);
   const orderPage = new OrderPage(leftHost, world.pois.homes, {
     onSelectHome: (h) => {
       pois.setSelected(h?.building_id ?? null);

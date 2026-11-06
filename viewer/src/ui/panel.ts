@@ -2,6 +2,7 @@
 import type { Card } from "../store";
 import { store } from "../store";
 import { CHECKPOINT_LABEL, HAZARD_LABEL, opColor } from "../config";
+import { opFilter } from "./filter";
 import { esc, el, fmtClock, pct } from "./dom";
 import { copy, isRealHash, openStorage, short, txUrl } from "./explorer";
 
@@ -129,10 +130,12 @@ export class DecisionPanel {
       this.filter = b.dataset.f || null;
       this.applyFilter();
     }));
+    opFilter.on(() => this.applyFilter());
     host.appendChild(this.root);
   }
 
   private visible(c: Card): boolean {
+    if (opFilter.op && c.ev.operator !== opFilter.op) return false;
     if (!this.filter) return true;
     if (this.filter === "err") return !c.ev.result.ok;
     return c.ev.result.checkpoint === this.filter;

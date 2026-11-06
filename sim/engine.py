@@ -1152,12 +1152,18 @@ class Engine:
 
     # ------------------------------------------------------------------ EngineControl protocol
     def place_order(self, operator: str, building_id: str, items: list[str],
-                    customer_name: str) -> dict[str, Any]:
+                    customer_name: str, priority: str = "normal",
+                    note: str = "") -> dict[str, Any]:
         home = self.homes_by_bldg.get(building_id) or self.homes_by_id.get(building_id)
         if not home:
             # pick random home if building_id unknown
             home = next(iter(self.homes_by_id.values()))
-        order = self.order_book.place(operator, home["id"], items, customer_name, self.sim_time)
+        order = self.order_book.place(operator, home["id"], items, customer_name, self.sim_time,
+                                          priority=priority, note=note)
+        return {**order.model_dump(mode="json"), **self.order_book.meta.get(order.id, {})}
+
+    def cancel_order(self, order_id: str) -> dict[str, Any]:
+        order = self.order_book.cancel(order_id, self.sim_time)
         return order.model_dump(mode="json")
 
     def set_brain_unreachable(self, on: bool) -> None:

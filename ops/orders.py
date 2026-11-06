@@ -21,13 +21,14 @@ class OrderBook:
         self._lock = threading.Lock()
         self._rng = random.Random(settings()["sim"]["seed"] if seed is None else seed)
         self._on_change = on_change or (lambda o: None)
+        self.meta: dict[str, dict] = {}   # order_id -> {"priority": "normal|express", "note": str}
         pois = json.loads(path("world/out/pois.json").read_text())
         self.homes = {h["id"]: h for h in pois["homes"]}
         self.stores = {s["operator"]: s for s in pois["dark_stores"]}
 
     # ------------------------------------------------------------------ create / update
     def place(self, operator: str, home_id: str, items: list[str], customer_name: str,
-              sim_time: float) -> Order:
+              sim_time: float, priority: str = "normal", note: str = "") -> Order:
         if operator not in self.stores:
             raise ValueError(f"unknown operator {operator!r}")
         if home_id not in self.homes:
@@ -39,6 +40,26 @@ class OrderBook:
                       items=items or self._rng.sample(CATALOGUE, k=self._rng.randint(1, 4)),
                       status="placed", timestamps={"placed": sim_time})
             self._orders[oid] = o
+            self.meta[oid] = {"priority": "express" if priority == "express" else "normal",
+                              "note": (note or "")[:200]}
+        self._on_change(o)
+        return o
+
+    def cancel(self, order_id: str, sim_time: float) -> Order:
+        """Cancel an order no robot has been assigned yet (status 'placed').
+
+        Marked 'failed' with a 'cancelled' timestamp (OrderStatus is frozen). Assigned orders are
+        refused: that would need the robot to abort its mission.
+        """
+        with self._lock:
+            o = self._orders.get(order_id)
+            if o is None:
+                raise KeyError(order_id)
+            if o.status != "placed":
+                raise ValueError(f"order {order_id} is {o.status}; only unassigned orders can be cancelled")
+            o.status = "failed"
+            o.timestamps["failed"] = sim_time
+            o.timestamps["cancelled"] = sim_time
         self._on_change(o)
         return o
 
@@ -61,7 +82,8 @@ class OrderBook:
         with self._lock:
             return sorted((o for o in self._orders.values()
                            if o.operator == operator and o.status == "placed"),
-                          key=lambda o: o.timestamps["placed"])
+                          key=lambda o: (self.meta.get(o.id, {}).get("priority") != "express",
+                                         o.timestamps["placed"]))
 
     def all(self) -> list[Order]:
         return list(self._orders.values())

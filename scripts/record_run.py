@@ -114,7 +114,7 @@ def main() -> int:
     runs = index_data.setdefault("runs", [])
     runs.append({
         "run_id": run_id,
-        "stream_path": str(out_path.relative_to(ROOT)),
+        "stream_path": str(out_path.relative_to(ROOT)) if out_path.is_relative_to(ROOT) else str(out_path),
         "sim_duration_s": round(sim_duration, 2),
         "wall_duration_s": round(wall_duration, 2),
         "rtf": round(rtf_actual, 2),

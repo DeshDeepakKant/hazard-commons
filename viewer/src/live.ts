@@ -106,3 +106,21 @@ export async function setSpeed(x: number): Promise<SpeedInfo | null> {
     return r.ok ? await r.json() : null;
   } catch { return null; }
 }
+
+// ---- Robot credit wallets (viewer/src/ui/wallets.ts). Backend may be absent: null = not available.
+export interface WalletEntry { kind: "spend" | "earn" | "topup"; amount_micro_usd: number; ref: string | null; source: "router" | "chain" | "simulated" | "manual"; t_wall: number }
+export type WalletTier = "normal" | "economy" | "throttled" | "paused";
+export interface RobotWallet {
+  robot_id: string; operator: string; kind: "rover" | "drone"; start_micro_usd: number; balance_micro_usd: number;
+  tier: WalletTier; spent: number; earned: number; ledger: WalletEntry[];
+}
+export interface WalletsResponse { enabled: boolean; wallets: RobotWallet[] }
+
+export async function fetchWallets(): Promise<WalletsResponse | null> {
+  try {
+    const r = await fetch(`${CONFIG.apiBase}/api/wallets`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && typeof j === "object" && Array.isArray(j.wallets) ? (j as WalletsResponse) : null;
+  } catch { return null; }
+}

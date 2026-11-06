@@ -4,6 +4,7 @@ import { store } from "../store";
 import { CHECKPOINT_LABEL, HAZARD_LABEL, opColor } from "../config";
 import { opFilter } from "./filter";
 import { esc, el, fmtClock, pct } from "./dom";
+import { walletBadge } from "./wallets";
 import { copy, isRealHash, openStorage, short, txUrl } from "./explorer";
 
 const MAX_CARDS = 120;
@@ -104,6 +105,7 @@ function render(c: Card, node: HTMLElement): void {
       <div class="verdict-col">
         <div class="verdict">${esc(s.verdict)}</div>
         ${s.detail ? `<div class="detail">${esc(s.detail)}</div>` : ""}
+        ${walletBadge(r)}
         <div class="metrics">${r.ok ? `<span>conf <b>${pct(conf)}</b></span>` : ""}<span>latency <b>${lat}</b></span>${ev.action_taken ? `<span>→ <b>${esc(ev.action_taken)}</b></span>` : ""}</div>
       </div>
     </div>

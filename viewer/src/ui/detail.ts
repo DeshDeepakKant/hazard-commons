@@ -3,6 +3,7 @@ import type { Card } from "../store";
 import { CHECKPOINT_LABEL } from "../config";
 import { esc, fmtClock } from "./dom";
 import { copy, isRealHash, openStorage, txUrl } from "./explorer";
+import { ledgerHtml, walletBadge } from "./wallets";
 import { summarize } from "./panel";
 import { openVerify } from "./verify";
 
@@ -65,6 +66,8 @@ export function openDecisionDetail(c: Card): void {
           ${row("Storage root", storage)}
           ${row("Chain tx", tx)}
         </dl>
+        ${walletBadge(r) ? `<div class="wallet-row">0G call paid from the robot's own credit: ${walletBadge(r)}</div>` : ""}
+        ${ledgerHtml(r.robot_id)}
         ${out ? `<details open><summary>Full 0G output (JSON)</summary><pre>${esc(out)}</pre></details>` : ""}
         ${Object.keys(trace).length ? `<details><summary>x_0g_trace</summary><pre>${esc(JSON.stringify(trace, null, 2))}</pre></details>` : ""}
       </div>

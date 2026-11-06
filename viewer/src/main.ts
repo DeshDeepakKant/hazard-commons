@@ -20,6 +20,7 @@ import { OrderPage } from "./ui/order";
 import { initHelp } from "./ui/help";
 import { Timeline } from "./ui/timeline";
 import { DisasterControl } from "./ui/disaster";
+import { WalletsControl } from "./ui/wallets";
 
 import { initInquiry } from "./ui/inquiry";
 import { MapPicker } from "./ui/pickmap";
@@ -142,6 +143,7 @@ async function boot(): Promise<void> {
   };
   topbar.addDronesButton(cycleDrones);
   if (CONFIG.mode === "live") new DisasterControl({ topbarRoot: topbar.root, dom: view.renderer.domElement, camera: view.camera, scene: view.scene, toast, flyTo: (x, y) => view.flyTo(new THREE.Vector3(x, 0, -y), 180) });
+  if (CONFIG.mode === "live") new WalletsControl(topbar.root);
   const leftHost = app.querySelector<HTMLElement>(".left-host")!;
   const dash = new Dashboards(leftHost);
   dash.onRobot = (id) => view.setMode("follow", id);

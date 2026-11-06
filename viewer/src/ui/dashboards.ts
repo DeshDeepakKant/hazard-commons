@@ -5,6 +5,7 @@ import { FSM_LABEL } from "../scene/robots";
 import { esc, el } from "./dom";
 import { opFilter } from "./filter";
 import { isRealHash, short, txUrl } from "./explorer";
+import { tierChip, usd, walletViews } from "./wallets";
 
 const STAKE = 0.0001;   // 0G per report (config/settings.yaml chain.report_stake_wei)
 
@@ -83,9 +84,17 @@ export class Dashboards {
 
   private renderFleet(): void {
     const f = opFilter.op;
+    const wv = walletViews();   // empty unless wallets are enabled or the recording carries _hc.wallet
+    const credit = (id: string): string => {
+      if (!wv.size) return "";
+      const w = wv.get(id);
+      if (!w) return `<td class="wcell muted">–</td>`;
+      const frac = w.start > 0 ? Math.max(0, Math.min(1, w.balance / w.start)) : 0;
+      return `<td class="wcell"><span class="wbar wt-${esc(w.tier)}"><i style="width:${(frac * 100).toFixed(0)}%"></i></span><b>${usd(w.balance)}</b>${tierChip(w.tier)}</td>`;
+    };
     const rows = (store.latest?.robots ?? []).filter((r) => !f || r.operator === f).slice().sort((a, b) => a.id.localeCompare(b.id))
-      .map((r) => `<tr data-robot="${esc(r.id)}" data-state="${esc(r.fsm_state)}" style="--op:${opColor(r.operator)}"><td><span class="chip"></span>${esc(r.id)}</td><td>${esc(FSM_LABEL[r.fsm_state] ?? r.fsm_state)}</td><td>${Math.round(r.battery * 100)}%</td><td>${r.speed.toFixed(1)}</td><td>${esc(r.order_id ?? "–")}</td></tr>`).join("");
-    const html = rows ? `<table><thead><tr><th>Robot</th><th>State</th><th>Batt</th><th>m/s</th><th>Order</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">No robots yet</div>`;
+      .map((r) => `<tr data-robot="${esc(r.id)}" data-state="${esc(r.fsm_state)}" style="--op:${opColor(r.operator)}"><td><span class="chip"></span>${esc(r.id)}</td><td>${esc(FSM_LABEL[r.fsm_state] ?? r.fsm_state)}</td><td>${Math.round(r.battery * 100)}%</td><td>${r.speed.toFixed(1)}</td><td>${esc(r.order_id ?? "–")}</td>${credit(r.id)}</tr>`).join("");
+    const html = rows ? `<table><thead><tr><th>Robot</th><th>State</th><th>Batt</th><th>m/s</th><th>Order</th>${wv.size ? "<th>Credit</th>" : ""}</tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">No robots yet</div>`;
     if (html !== this.fleetHtml) { this.fleetHtml = html; this.fleetEl.innerHTML = html; }
   }
 

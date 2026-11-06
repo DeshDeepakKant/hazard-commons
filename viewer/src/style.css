@@ -475,3 +475,33 @@ canvas.placing-order { cursor: crosshair !important; }
 .pick-tip { position: fixed; z-index: 60; pointer-events: none; background: rgba(15,23,42,.94); border: 1px solid #38bdf8; border-radius: 8px; padding: 6px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 2px; color: #e2e8f0; max-width: 240px; }
 .pick-tip span { color: #94a3b8; }
 .order-page .pickmap { width: 100%; margin: 4px 0 6px; }
+
+/* ---- robot credit wallets (viewer/src/ui/wallets.ts): hidden unless the backend enables wallets or a recording has _hc.wallet */
+.wallets-btn[hidden], .wallets-pop[hidden] { display: none; }
+.wallets-btn.on { border-color: #22c55e; color: #86efac; }
+.wallets-pop { position: fixed; z-index: 60; width: 460px; max-width: calc(100vw - 16px); background: rgba(14, 21, 33, .97); border: 1px solid var(--line); border-radius: 10px; padding: 12px; box-shadow: 0 8px 28px #000a; font-size: 12px; }
+.wallets-pop h3 { margin: 0 0 4px; font-size: 14px; }
+.wallets-pop h4 { margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
+.wtab { width: 100%; border-collapse: collapse; font-size: 11px; }
+.wtab th { text-align: left; font-weight: 500; opacity: .6; padding: 2px 4px; }
+.wtab td { padding: 2px 4px; }
+.wtab .good { color: var(--ok); }
+.wchip { display: inline-block; font-size: 10px; padding: 0 6px; border-radius: 8px; border: 1px solid currentColor; margin-left: 4px; white-space: nowrap; }
+.wchip.wt-normal, .badge.wallet.wt-normal { color: #22c55e; }
+.wchip.wt-economy, .badge.wallet.wt-economy { color: #f59e0b; }
+.wchip.wt-throttled, .badge.wallet.wt-throttled { color: #f97316; }
+.wchip.wt-paused, .badge.wallet.wt-paused { color: #ef4444; }
+.badge.wallet { display: inline-block; margin: 3px 0; font-family: var(--mono); font-size: 10px; border: 1px solid currentColor; border-radius: 6px; padding: 0 6px; }
+.fleet .wcell { min-width: 150px; }
+.fleet .wcell b { margin: 0 2px 0 6px; font-weight: 500; }
+.wbar { display: inline-block; width: 36px; height: 5px; border-radius: 3px; background: #1e293b; vertical-align: middle; overflow: hidden; }
+.wbar i { display: block; height: 100%; background: currentColor; }
+.wbar.wt-normal { color: #22c55e; } .wbar.wt-economy { color: #f59e0b; } .wbar.wt-throttled { color: #f97316; } .wbar.wt-paused { color: #ef4444; }
+.wledger table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.wledger th { text-align: left; font-weight: 500; opacity: .6; padding: 2px 4px; }
+.wledger td, .wfeed td { padding: 2px 4px; }
+.wk-spend .amt { color: #f87171; } .wk-earn .amt, .wk-topup .amt { color: #4ade80; }
+.wsrc { font-size: 10px; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.wsrc.ws-simulated { border-style: dashed; color: var(--yellow); font-weight: 600; }
+.wsrc.ws-chain { color: #38bdf8; }
+.wallet-row { margin: 6px 0; font-size: 12px; }

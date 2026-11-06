@@ -5,9 +5,57 @@ import type { RobotState } from "../types";
 import { interpolate, type Pose } from "../interp";
 import { opColor } from "../config";
 import { polylineForEdges, type WorldData } from "./world";
+import { Pads } from "./pads";
 
 const ROVER_SCALE = 2.6;   // exaggerated so they read at city scale
-const DRONE_SCALE = 3.2;
+const DRONE_SCALE = 4.6;
+const DRONE_MIN_PX_DIST = 170;   // beyond this camera distance the drone is scaled up to keep its screen size
+const DRONE_MAX_BOOST = 5;
+const FLYING_ALT = 1.5;          // m; below this a drone counts as landed
+const BEACON_ABOVE = 90;         // light column reaches this far above the drone (shows over rooftops)
+const TRAIL_N = 48;              // trail points
+const TRAIL_STEP = 3;            // m between trail points
+
+/** vertical alpha gradient (opaque at the bottom, clear at the top) for light columns */
+let beamAlpha: THREE.CanvasTexture | null = null;
+function beamAlphaMap(): THREE.CanvasTexture {
+  if (beamAlpha) return beamAlpha;
+  const c = document.createElement("canvas");
+  c.width = 4; c.height = 128;
+  const g = c.getContext("2d")!;
+  const gr = g.createLinearGradient(0, 0, 0, 128);
+  gr.addColorStop(0, "#000"); gr.addColorStop(0.35, "#888"); gr.addColorStop(1, "#fff");
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 128);
+  beamAlpha = new THREE.CanvasTexture(c);
+  return beamAlpha;
+}
+
+let haloTex: THREE.CanvasTexture | null = null;
+function haloTexture(): THREE.CanvasTexture {
+  if (haloTex) return haloTex;
+  const s = 64, c = document.createElement("canvas");
+  c.width = c.height = s;
+  const g = c.getContext("2d")!;
+  const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.25, "rgba(255,255,255,0.85)");
+  gr.addColorStop(0.5, "rgba(255,255,255,0.25)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, s, s);
+  haloTex = new THREE.CanvasTexture(c);
+  return haloTex;
+}
+
+/** extras that make a drone findable: light column, see-through halo, ground trail */
+interface DroneFx {
+  beacon: THREE.Mesh;
+  halo: THREE.Sprite;
+  trail: THREE.Line;
+  trailPts: Float32Array;   // xyz * TRAIL_N, newest first
+  trailLen: number;
+  hazardId: string | null;  // hazard of the current verify mission
+  edge: string | null;      // edge named by the mission note (until the hazard id is known)
+  note: string;
+  text: string;
+}
 
 export const FSM_LABEL: Record<string, string> = {
   IDLE: "idle", TO_STORE: "to store", LOADING: "loading", DELIVERING: "delivering", AT_DOOR: "at door",
@@ -86,6 +134,7 @@ interface RobotView {
   tether?: THREE.Line;
   shadow?: THREE.Mesh;
   ring: THREE.Mesh;
+  fx?: DroneFx;
   route?: THREE.Line;
   routeKey: string;
   lastState: string;
@@ -99,10 +148,21 @@ export class Robots {
   showRoutes = true;
   highlighted = new Set<string>();
   onClick: (id: string) => void = () => {};
+  /** drone landing pads (add `pads.group` to the scene) */
+  pads = new Pads();
+  /** set by main: used to keep drones a minimum on-screen size */
+  camera: THREE.Camera | null = null;
+  /** set by main: hazard id for an edge id (drone notes name the edge while verifying) */
+  hazardForEdge: (edgeId: string) => string | null = () => null;
 
   constructor(private world: WorldData) {
     this.group.name = "robots";
     this.routeGroup.name = "routes";
+    this.pads.onClick = (id) => this.onClick(id);
+  }
+
+  droneIds(): string[] {
+    return [...this.views.values()].filter((v) => v.kind === "drone").map((v) => v.id).sort();
   }
 
   private create(r: RobotState): RobotView {
@@ -116,6 +176,7 @@ export class Robots {
     const labelEl = document.createElement("div");
     labelEl.className = "robot-label";
     labelEl.style.setProperty("--op", color);
+    labelEl.dataset.kind = r.kind;
     labelEl.innerHTML = `<span class="chip"></span><span class="rid"></span><span class="st"></span>`;
     (labelEl.querySelector(".rid") as HTMLElement).textContent = r.id;
     const stateEl = labelEl.querySelector(".st") as HTMLSpanElement;
@@ -146,16 +207,107 @@ export class Robots {
       v.shadow = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.25, depthWrite: false }));
       v.shadow.rotation.x = -Math.PI / 2;
       this.group.add(v.shadow);
+      v.fx = this.droneFx(color);
+      root.add(v.fx.halo);
+      this.group.add(v.fx.beacon, v.fx.trail);
     }
     this.group.add(root);
     this.views.set(r.id, v);
     return v;
   }
 
+  private droneFx(color: string): DroneFx {
+    const bg = new THREE.CylinderGeometry(1.3, 1.3, 1, 12, 1, true);
+    bg.translate(0, 0.5, 0);   // base at y = 0, scaled in y to the column height
+    const beacon = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({
+      color, alphaMap: beamAlphaMap(), transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide,
+    }));
+    beacon.frustumCulled = false;
+    beacon.renderOrder = 3;
+    // constant screen size, drawn through buildings so the drone can be spotted anywhere
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: haloTexture(), color, transparent: true, depthTest: false, depthWrite: false,
+      sizeAttenuation: false, blending: THREE.AdditiveBlending,
+    }));
+    halo.scale.setScalar(0.045);
+    halo.renderOrder = 10;
+    const trailPts = new Float32Array(TRAIL_N * 3);
+    const tg = new THREE.BufferGeometry();
+    tg.setAttribute("position", new THREE.BufferAttribute(trailPts, 3).setUsage(THREE.DynamicDrawUsage));
+    const c = new THREE.Color(color), cols = new Float32Array(TRAIL_N * 4);
+    for (let i = 0; i < TRAIL_N; i++) cols.set([c.r, c.g, c.b, 0.9 * (1 - i / TRAIL_N)], i * 4);
+    tg.setAttribute("color", new THREE.BufferAttribute(cols, 4));
+    tg.setDrawRange(0, 0);
+    const trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }));
+    trail.frustumCulled = false;
+    return { beacon, halo, trail, trailPts, trailLen: 0, hazardId: null, edge: null, note: "", text: "" };
+  }
+
+  private updateDrone(v: RobotView, r: RobotState, p: Pose, alt: number, nowS: number): void {
+    const fx = v.fx!;
+    const flying = p.z > FLYING_ALT;
+    // keep a minimum screen size when the camera is far away
+    let boost = 1, fade = 1;
+    if (this.camera) {
+      const d = this.camera.position.distanceTo(v.root.position);
+      boost = Math.min(DRONE_MAX_BOOST, Math.max(1, d / DRONE_MIN_PX_DIST));
+      fade = Math.min(1, Math.max(0.15, (d - 60) / 350));   // the column is for finding: faint up close
+    }
+    v.model.scale.setScalar(DRONE_SCALE * boost);
+    v.label.position.y = (flying ? 2.2 : 5) + 1.6 * boost;   // landed: clear of the pad marker
+    // light column from the ground through the drone; pulses while parked on the pad
+    const b = fx.beacon;
+    b.position.set(p.x, 0, -p.y);
+    b.scale.set(boost, alt + BEACON_ABOVE, boost);
+    (b.material as THREE.MeshBasicMaterial).opacity = fade * (flying ? 0.85 : 0.6 + 0.25 * Math.sin(nowS * 3.2));
+    fx.halo.scale.setScalar(flying ? 0.045 : 0.034 + 0.008 * Math.sin(nowS * 3.2));
+    // altitude cues only while airborne
+    v.tether!.visible = flying;
+    v.shadow!.visible = flying;
+    (v.shadow!.material as THREE.MeshBasicMaterial).opacity = 0.35 - Math.min(0.2, p.z / 250);
+    v.shadow!.scale.setScalar(boost);
+    // trail: a point every TRAIL_STEP m; cleared on landing or a replay seek (jump)
+    const t = fx.trailPts;
+    if (!flying) fx.trailLen = 0;
+    else {
+      const dx = p.x - t[0], dy = alt - t[1], dz = -p.y - t[2];
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (fx.trailLen === 0 || d2 > 60 * 60) { t[0] = p.x; t[1] = alt; t[2] = -p.y; fx.trailLen = 1; }
+      else if (d2 > TRAIL_STEP * TRAIL_STEP) {
+        t.copyWithin(3, 0, (TRAIL_N - 1) * 3);
+        t[0] = p.x; t[1] = alt; t[2] = -p.y;
+        fx.trailLen = Math.min(TRAIL_N, fx.trailLen + 1);
+      }
+      (fx.trail.geometry.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+    }
+    fx.trail.geometry.setDrawRange(0, fx.trailLen);
+    // label: "D-01 · flying 38 m · verifying hazard #3"
+    const note = r.note ?? "";
+    if (note !== fx.note) {
+      fx.note = note;
+      const m = /hazard #(\w+)/.exec(note);
+      const e = /^verifying .* on (\S+)$/.exec(note);   // a new mission names the edge, not the id
+      if (m) { fx.hazardId = m[1]; fx.edge = null; }
+      else if (e) { fx.hazardId = null; fx.edge = e[1]; }
+    }
+    if (r.fsm_state === "IDLE") { fx.hazardId = null; fx.edge = null; }
+    if (!fx.hazardId && fx.edge) fx.hazardId = this.hazardForEdge(fx.edge);   // hazard may be filed later
+    const hz = fx.hazardId ? `hazard #${fx.hazardId}` : "hazard";
+    const where = flying ? `flying ${Math.round(p.z)} m` : "on pad";
+    const what: Record<string, string> = {
+      IDLE: "idle", VERIFYING: flying ? `verifying ${hz}` : `taking off · ${hz}`,
+      WAITING_FOR_BRAIN: `asking 0G · ${hz}`, SAFE_STOP: `SAFE STOP · ${hz}`,
+      RETURNING: "returning to pad", LANDING: "landing",
+    };
+    const text = `${where} · ${what[r.fsm_state] ?? FSM_LABEL[r.fsm_state] ?? r.fsm_state}`;
+    if (text !== fx.text) { fx.text = text; v.stateEl.textContent = "· " + text; }
+  }
+
   update(a: RobotState[], b: RobotState[], alpha: number, nowS: number): void {
     const seen = new Set<string>();
     interpolate(a, b, alpha, (r, p) => {
       seen.add(r.id);
+      if (r.kind === "drone") this.pads.observe(r);
       const v = this.views.get(r.id) ?? this.create(r);
       v.pose = { ...p };
       const isDrone = r.kind === "drone";
@@ -169,6 +321,7 @@ export class Robots {
         pos.setXYZ(1, 0, -alt, 0); pos.needsUpdate = true;
         v.tether!.computeLineDistances();
         v.shadow!.position.set(p.x, 0.12, -p.y);
+        this.updateDrone(v, r, p, alt, nowS);
       } else if (r.fsm_state === "SAFE_STOP") {
         v.model.position.y = 0;
       }
@@ -176,7 +329,7 @@ export class Robots {
       if (v.lastState !== r.fsm_state) {
         v.lastState = r.fsm_state;
         v.labelEl.dataset.state = r.fsm_state;
-        v.stateEl.textContent = FSM_LABEL[r.fsm_state] ?? r.fsm_state;
+        if (!isDrone) v.stateEl.textContent = FSM_LABEL[r.fsm_state] ?? r.fsm_state;
       }
       const hl = this.highlighted.has(r.id);
       v.ring.visible = hl || r.fsm_state === "SAFE_STOP" || r.fsm_state === "WAITING_FOR_BRAIN";
@@ -197,6 +350,7 @@ export class Robots {
       if (!seen.has(id)) {
         this.group.remove(v.root);
         if (v.shadow) this.group.remove(v.shadow);
+        if (v.fx) this.group.remove(v.fx.beacon, v.fx.trail);
         if (v.route) this.routeGroup.remove(v.route);
         v.label.element.remove();
         this.views.delete(id);

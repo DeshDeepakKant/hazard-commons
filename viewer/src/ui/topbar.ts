@@ -86,12 +86,26 @@ export class Topbar {
     this.connEl.querySelector(".conn")!.textContent = text ?? (CONFIG.mode === "live" ? (state === "open" ? "LIVE" : state === "connecting" ? "CONNECTING…" : "OFFLINE") : "REPLAY");
   }
 
-  setRobots(ids: { id: string; operator: string }[]): void {
-    const key = ids.map((r) => r.id).join(",");
+  setRobots(ids: { id: string; operator: string; kind?: string }[]): void {
+    const key = ids.map((r) => `${r.id}:${r.kind ?? ""}`).join(",");
     if (key === this.robotsKey) return;
     this.robotsKey = key;
     const cur = this.followSel.value;
-    this.followSel.innerHTML = `<option value="">Follow robot…</option>` + ids.map((r) => `<option value="${r.id}">${r.id} · ${r.operator}</option>`).join("");
+    const opts = (rs: typeof ids) => rs.map((r) => `<option value="${r.id}">${r.id} · ${r.operator}</option>`).join("");
+    const drones = ids.filter((r) => r.kind === "drone"), rovers = ids.filter((r) => r.kind !== "drone");
+    this.followSel.innerHTML = `<option value="">Follow robot…</option>`
+      + (drones.length ? `<optgroup label="Drones">${opts(drones)}</optgroup>` : "")
+      + (rovers.length ? `<optgroup label="Rovers">${opts(rovers)}</optgroup>` : "");
     this.followSel.value = cur;
+  }
+
+  /** "Drones" quick button (next to Cinematic): each click flies to the next drone */
+  addDronesButton(onClick: () => void): void {
+    const b = document.createElement("button");
+    b.className = "drones";
+    b.title = "Fly to the next drone (D)";
+    b.textContent = "🚁 Drones";
+    b.addEventListener("click", onClick);
+    this.root.querySelector(".ctrls")!.insertBefore(b, this.root.querySelector(".cine"));
   }
 }

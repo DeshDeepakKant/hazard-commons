@@ -29,6 +29,9 @@ sim:
   rover: {max_speed_mps: 4.0, scale: 0.5}
   drone: {cruise_alt_m: 40.0, max_speed_mps: 10.0}
   checkpoint_trigger_dist_m: 18.0
+  # Live demo only: replay the scripted story every every_s sim seconds (from each cycle start).
+  # Each cycle costs ~3 stakes (0.0001 0G) + gas and ~15-25 0G Router calls. CLI overrides.
+  scenario_loop: {enabled: false, every_s: 360, max_cycles: 5}
 
 operators:
   - {id: 0, name: ZipKart,    color: "#ff6b1a", rovers: 3}

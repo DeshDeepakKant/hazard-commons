@@ -640,6 +640,26 @@ class Engine:
             ids = set(self.run_hazard_ids)
         return [h for h in self.chain.hazards() if h.id in ids]
 
+    def retire_run_hazards(self, extra_edges: Sequence[str] = ()) -> list[str]:
+        """Scenario loop reset (no chain tx): forget every hazard reported so far in this run so
+        it no longer drives CP-H2 or shows in snapshots; unblock its edge and reopen the SUMO
+        closure. `extra_edges` (e.g. the old props' edges) are unblocked/reopened too.
+        Returns the retired hazard ids."""
+        with self._run_hazard_lock:
+            ids = sorted(self.run_hazard_ids)
+            self.run_hazard_ids.clear()
+        edges = list(extra_edges)
+        for hid in ids:
+            hz = self.chain.hazard(hid)
+            if hz is not None:
+                edges.append(hz.edge_id)
+        for eid in dict.fromkeys(edges):
+            self.unblock_edge(eid)
+            if self.traffic_bridge:
+                for se in self.edge_to_sumo_edges.get(eid, []):
+                    self.traffic_bridge.reopen_edge(se)
+        return ids
+
     # ------------------------------------------------------------------ checkpoints
     def _check_cp_h1(self) -> None:
         """CP-H1: Hazard encounter when a PHYSICAL prop enters sensor range (fake reports have

@@ -57,6 +57,7 @@ cp .env.example .env              # add ZG_ROUTER_API_KEY and funded testnet key
 chain/deploy_galileo.sh --env-file .env               # deploy HazardRegistry to Galileo (chain 16602)
 .venv/bin/python -m brain.spike --call                # one real 0G Router call
 scripts/run_demo.sh --traffic                         # live sim server on :8765 (DEMO=1)
+scripts/run_demo.sh --traffic --loop                  # same, replays the story every 360 s (max 5 cycles)
 .venv/bin/python scripts/record_run.py --duration 240 --traffic --run-id demo-1
 (cd viewer && npm ci && npm run dev)                  # viewer; ?replay=<stream.jsonl> for replay
 .venv/bin/python scripts/test_safestop.py             # safe-stop proof

@@ -26,6 +26,7 @@ export interface OrderHandlers {
   onSelectHome: (h: Home | null) => void;
   onTrack: (o: Order | null) => void;
   onFollow: (robotId: string) => void;
+  onPickMap?: () => void;
 }
 
 const isOpen = (o: Order) => o.status !== "delivered" && o.status !== "failed";
@@ -96,6 +97,7 @@ export class OrderPage {
     if (!t || (t as HTMLButtonElement).disabled) return;
     const act = t.dataset.act!;
     if (act === "close") this.toggle(false);
+    else if (act === "pickmap") this.h.onPickMap?.();
     else if (act === "home") { const h = this.homes.find((x) => x.id === t.dataset.id); if (h) this.pickHome(h); }
     else if (act === "clear-home") { this.home = null; this.h.onSelectHome(null); this.render(); }
     else if (act === "inc" || act === "dec") {
@@ -257,7 +259,7 @@ export class OrderPage {
       body = `${live ? "" : `<p class="muted small">Replay: this is a recording, so ordering is disabled. Click an order below to see its timeline.</p>`}
         <h3><span class="n">1</span> Deliver to</h3>
         ${this.home ? `<div class="picked"><b>${esc(this.home.customer_name)}</b><span>${esc(this.home.address)}</span><button class="mini" data-act="clear-home" ${ro}>change</button></div>`
-          : `<p class="muted small">Click a white home marker on the map, or search:</p><input class="search" ${ro} placeholder="Search address or name" value="${esc(this.search)}"><div class="home-list"></div>`}
+          : `<button class="primary pickmap" data-act="pickmap" ${ro}>📍 Pick on map</button><p class="muted small">Click any building on the map (a pointer follows your mouse), or search:</p><input class="search" ${ro} placeholder="Search address or name" value="${esc(this.search)}"><div class="home-list"></div>`}
         <h3><span class="n">2</span> Cart</h3>
         <div class="catalogue">${CATALOGUE.map((c) => { const q = this.qty.get(c.id) ?? 0; return `<div class="item ${q ? "sel" : ""}"><span class="em">${c.emoji}</span><span class="nm">${esc(c.name)}</span><span class="pr">₹${c.price}</span><span class="qty"><button data-act="dec" data-id="${c.id}" ${ro}>−</button><b>${q}</b><button data-act="inc" data-id="${c.id}" ${ro}>+</button></span></div>`; }).join("")}</div>
         <h3><span class="n">3</span> Operator</h3>

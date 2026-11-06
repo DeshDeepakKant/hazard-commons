@@ -469,3 +469,9 @@ canvas.placing-disaster { cursor: crosshair !important; }
 .inq-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .inq-actions .inq-sim { border-style: dashed; color: var(--yellow); }
 .inq-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* order: pick delivery spot on the map */
+canvas.placing-order { cursor: crosshair !important; }
+.pick-tip { position: fixed; z-index: 60; pointer-events: none; background: rgba(15,23,42,.94); border: 1px solid #38bdf8; border-radius: 8px; padding: 6px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 2px; color: #e2e8f0; max-width: 240px; }
+.pick-tip span { color: #94a3b8; }
+.order-page .pickmap { width: 100%; margin: 4px 0 6px; }

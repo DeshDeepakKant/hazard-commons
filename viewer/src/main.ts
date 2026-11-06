@@ -22,6 +22,7 @@ import { Timeline } from "./ui/timeline";
 import { DisasterControl } from "./ui/disaster";
 
 import { initInquiry } from "./ui/inquiry";
+import { MapPicker } from "./ui/pickmap";
 import { el, esc } from "./ui/dom";
 import { LiveSource, fetchMeta, setBrainUnreachable } from "./live";
 import { ReplayPlayer, loadJsonl } from "./replay";
@@ -146,6 +147,7 @@ async function boot(): Promise<void> {
   dash.onRobot = (id) => view.setMode("follow", id);
   dash.onHazard = (id) => { const p = hazards.position(id); if (p) { view.setMode("orbit"); view.flyTo(p, 180); } };
   initHelp(app);
+  const picker = new MapPicker({ dom: view.renderer.domElement, camera: view.camera, scene: view.scene, homes: world.pois.homes, toast, onPick: (h) => orderPage.pickHome(h) });
   const orderPage = new OrderPage(leftHost, world.pois.homes, {
     onSelectHome: (h) => {
       pois.setSelected(h?.building_id ?? null);
@@ -153,6 +155,7 @@ async function boot(): Promise<void> {
     },
     onTrack: (o) => trackOrder(o),
     onFollow: (id) => view.setMode("follow", id),
+    onPickMap: () => picker.start(),
   });
   const panel = new DecisionPanel(app.querySelector(".right-host")!);
   panel.onCardClick = (c) => { view.setMode("follow", c.ev.result.robot_id); openDecisionDetail(c); };

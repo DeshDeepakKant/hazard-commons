@@ -85,7 +85,8 @@ nearly broke so the downgrade is visible within a minute.
    ▲                                   │
    │   tier by balance / start credit  ▼
    │   normal  ≥40%   default TEE model 0gm-1.0-35b-a3b   (~90–130 µUSD/call)
-   │   economy <40%   cheaper 0G model qwen2.5-vl-72b, NO TEE (~60 µUSD with a photo, ~24 text-only)
+   │   economy <40%   photo checkpoints → cheaper 0G model qwen2.5-vl-72b, NO TEE (~61 µUSD);
+   │                  route-ahead text stays on 0gm-1.0-35b-a3b (TEE, ~65 µUSD)
    │   throttled <15% economy model + max one call per 20 s
    │   paused  < one call   no model call → SAFE_STOP (never a guessed decision)
    │
@@ -93,6 +94,12 @@ nearly broke so the downgrade is visible within a minute.
    +600  reporter of a hazard that rivals confirmed on 0G Chain (HazardResolved event)
    +150  verifier (drone or rival rover) whose CP-V verdict matched the on-chain outcome
    +300  delivered order (SIMULATED fee, labelled "simulated" in the UI and ledger)
+
+ self-funding top-up (--topup), no human:
+   robot falls to economy ─> its operator's agent reinvests on-chain earnings:
+   real Galileo tx  operator wallet ─0.00001 0G─> ComputeCreditVault.deposit("R-01")
+   testnet-Router billing stand-in indexes Deposited ─> credits the robot's Router account
+   robot reads GET /v1/account/balance ─> wallet topup (+500 µUSD, tx hash in ledger) ─> back to normal
 ```
 
 - The robot reads its own balance before each call; the gate runs before the global call budget, and a
@@ -101,13 +108,25 @@ nearly broke so the downgrade is visible within a minute.
 - Per-robot lifetime spend cap (`max_spend_micro_usd`) so a runaway loop cannot drain the account.
 - Economy cards say **NO TEE** — the robot trades verifiability for price, visibly, never silently.
 
-**What is not real (honest limits).** Wallet balances are per-robot accounts inside the sim, debited with
-the real per-call 0G cost but funded from one shared 0G Router account (USD-billed, $5.99 credit). Earnings
-are credited to the robot's wallet when the on-chain event happens; they do **not** move money into the
-0G Router account. The two paths that would close that loop were not usable this weekend: 0G's mainnet
-self-payment route (comfy) needs a 0G-billed account and mainnet 0G (ours is USD-billed, switching is
-manual); the testnet Router API (`router-api-testnet.integratenetwork.work`) did not complete a TLS
-handshake for the whole event, so a deposit → Payment Layer → balance top-up could not be tested.
+**Self-funding loop** (`scripts/run_demo.sh --traffic --topup`, plus
+`.venv/bin/python scripts/run_testnet_router_mock.py --port 8790`): an operator may only reinvest what it
+earned on chain in this run (the 0.0001 0G stake refunded when rivals confirm its report), capped at 3 top-ups
+per robot. Deposits go to [`ComputeCreditVault`](https://chainscan-galileo.0g.ai/address/0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83)
+on Galileo (`chain/foundry/src/ComputeCreditVault.sol`, `brain/topup.py`). Live run: R-01 fell to economy at
+145/400 µUSD; 0.5 s later ZipKart sent
+[`0xf6a4430c…`](https://chainscan-galileo.0g.ai/tx/0xf6a4430ceb1eb2a4bdf750938dd3b37a25035e8ee9793ea03b55632e982b26a5);
+the Router stand-in credited 500 µUSD and R-01 was back on the TEE model 10 s after it ran low.
+
+**What is not real (honest limits).** The real 0G testnet Router API (`router-api-testnet.integratenetwork.work`)
+did not complete a TLS handshake for the whole event, and 0G's mainnet self-payment route (comfy) needs a
+0G-billed account and mainnet 0G (ours is USD-billed). So the billing side of the testnet Router is a local,
+clearly labelled **stand-in** (`testnet_router_mock/`, every response has `X-HC-Mock`): it implements the
+documented shape (`GET /v1/account/balance`, `402 insufficient_balance`), credits accounts from the real
+vault deposits at a declared demo rate (1 testnet 0G = 50 USD of credit), and forwards every inference call
+unchanged to the real 0G Router — it never produces or alters a model answer. Robot wallets are the sim's
+per-body ledgers, debited with the real per-call 0G cost; the actual Router bill is paid from one USD account.
+Swapping in the real testnet Router means pointing `router_mock_url` at it and the deposit at its Payment
+Layer (`0x0AD9…9939`); that contract's deposit ABI and the real balance fields are not verified yet.
 **Proof run** (`scripts/wallet_demo.py`, real 0G Router calls through the production `ZGBrain` +
 wallet code, one body starting at 300 µUSD, real camera frame): 2 calls on `0gm-1.0-35b-a3b` (90, 92 µUSD)
 → economy → 2 calls on `qwen2.5-vl-72b-instruct` (62, 61 µUSD, still classified the accident) → paused →

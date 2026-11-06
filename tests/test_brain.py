@@ -292,12 +292,12 @@ def test_bus_late_joiner_gets_history_then_state():
 
 def test_per_checkpoint_routes_use_their_own_model(fake):
     b = make_brain(fake)
-    alt = ZGRouter(base_url=fake.base_url, api_key="sk-test-0123456789abcdef", model="glm-5.3",
+    alt = ZGRouter(base_url=fake.base_url, api_key="sk-test-0123456789abcdef", model="qwen2.5-vl-72b-instruct",
                    timeout_s=3.0, trust_mode="private")
     b.set_routes({"CP-H2": alt})
     fake.replies = [json.dumps({"action": "reroute", "reason": "r", "trust_report": True}), json.dumps(GOOD_H1)]
     assert run(b, req(cp="CP-H2", seq=1)).ok
-    assert fake.requests[-1]["body"]["model"] == "glm-5.3"
+    assert fake.requests[-1]["body"]["model"] == "qwen2.5-vl-72b-instruct"
     assert run(b, req(cp="CP-H1", seq=2)).ok
     assert fake.requests[-1]["body"]["model"] == "0gm-1.0-35b-a3b"
     b.set_unreachable(True)
@@ -310,6 +310,6 @@ def test_outage_profile_routes_vision_to_non_tee_model(monkeypatch):
     routes, notes = build_profile_routes("outage")
     assert set(routes) == {"CP-H1", "CP-V", "CP-H2"}
     assert routes["CP-H1"].trust_mode == "standard" and routes["CP-H1"].model == "qwen2.5-vl-72b-instruct"
-    assert routes["CP-H2"].model == "glm-5.3" and routes["CP-H2"].trust_mode == "private"
+    assert routes["CP-H2"].model == "0gm-1.0-35b-a3b" and routes["CP-H2"].trust_mode == "private"
     assert any("NO TEE" in n for n in notes)
     assert build_profile_routes("default") == ({}, [])

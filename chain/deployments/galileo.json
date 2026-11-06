@@ -30,5 +30,11 @@
     "registerOperator:DashKirana": 88604
   },
   "network": "galileo",
-  "rpc": "https://evmrpc-testnet.0g.ai"
+  "rpc": "https://evmrpc-testnet.0g.ai",
+  "ComputeCreditVault": {
+    "address": "0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83",
+    "tx": "0xfb24cdb61c4c3c53d068626766530df6015654ebe5ed544507bc62eec2f9d45e",
+    "abi_path": "chain/abi/ComputeCreditVault.json",
+    "block": 64227019
+  }
 }

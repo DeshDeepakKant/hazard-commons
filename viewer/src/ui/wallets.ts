@@ -80,7 +80,9 @@ export function walletBadge(r: { zg_trace: Record<string, unknown> | null }): st
 }
 
 const SRC_LABEL: Record<string, string> = { router: "0G Router", chain: "on-chain", simulated: "SIMULATED", manual: "manual" };
-const refHtml = (e: WalletEntry): string => !e.ref ? "–"
+const refHtml = (e: WalletEntry): string => e.tx_hash && isRealHash(e.tx_hash)
+  ? `<a target="_blank" rel="noopener" href="${txUrl(e.tx_hash)}" title="${esc(e.note ?? e.tx_hash)}">${esc(short(e.tx_hash, 8, 6))} ↗</a>`
+  : !e.ref ? "–"
   : isRealHash(e.ref) ? `<a target="_blank" rel="noopener" href="${txUrl(e.ref)}" title="${esc(e.ref)}">${esc(short(e.ref, 8, 6))} ↗</a>`
   : `<code title="${esc(e.ref)}">${esc(short(e.ref, 14, 6))}</code>`;
 const entryRow = (e: WalletEntry, who = ""): string => `<tr class="wk-${esc(e.kind)}"><td>${esc(new Date(e.t_wall * 1000).toLocaleTimeString())}</td>${who}<td>${esc(e.kind)}</td>

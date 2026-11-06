@@ -365,6 +365,16 @@ class Engine:
         if self.robot_wallets is not None:
             for r in self.world.robots.values():
                 self.robot_wallets.register(r.id, r.operator, r.kind)
+        # self-funding loop (brain/topup.py): operators reinvest on-chain earnings into low robots
+        self.topup: Optional[Any] = None
+        try:
+            from brain.topup import build_topup_agent
+            self.topup = build_topup_agent(self.robot_wallets)
+            if self.topup is not None:
+                self.topup.start()
+        except Exception:
+            log.exception("top-up agent unavailable; robots keep their wallets without top-ups")
+            self.topup = None
 
         # server attachment
         if attach_to_server:
@@ -1300,6 +1310,11 @@ class Engine:
         if hz.status == "confirmed" and hz.reporter_robot:
             self._credit_income(hz.reporter_robot, "hazard_reward_micro_usd", f"hazard:{hid}:report",
                                 "chain", f"hazard #{hid} confirmed on chain (stake refund + reward)", tx)
+        if hz.status == "confirmed" and self.topup is not None:
+            op = getattr(hz, "reporter_operator", None) or getattr(hz, "operator", None)
+            if op:
+                self.topup.add_operator_budget(op, int(self.topup.cfg["budget_per_confirmed_hazard_wei"]),
+                                               f"hazard:{hid}")
         if hz.status in ("confirmed", "rejected"):
             for rid, confirm in (self._verifier_votes.get(str(hid)) or {}).items():
                 if confirm == (hz.status == "confirmed"):
@@ -1310,7 +1325,10 @@ class Engine:
         w = self.robot_wallets
         if w is None:
             return {"enabled": False, "wallets": []}
-        return {"enabled": True, "wallets": w.snapshot_all(20)}
+        out: dict[str, Any] = {"enabled": True, "wallets": w.snapshot_all(20)}
+        if getattr(self, "topup", None) is not None:
+            out["topup"] = self.topup.snapshot()
+        return out
 
     def credit_wallet(self, robot_id: str, amount_micro_usd: int, note: str = "") -> dict[str, Any]:
         w = self.robot_wallets
@@ -1487,6 +1505,8 @@ class Engine:
 
     def close(self) -> None:
         """Clean shutdown."""
+        if getattr(self, "topup", None) is not None:
+            self.topup.stop()
         if self.traffic_bridge:
             try:
                 self.traffic_bridge.close()

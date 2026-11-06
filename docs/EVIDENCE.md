@@ -99,9 +99,29 @@ with no human action. R-04 dropped to economy after a bystander-inquiry call (15
 **Model costs measured with our key:** `0gm-1.0-35b-a3b` ~90–130 µUSD (photo) / ~65 (text); `qwen2.5-vl-72b-instruct`
 ~61 (photo) / 24 (text); `glm-5.3` 302 and an empty answer (reasoning model) — so it is not an economy route.
 
-**Limits:** wallets are per-robot ledgers inside the sim, funded from one USD-billed 0G Router account; earned
-credit does not move money into that account. comfy (mainnet self-payment) needs a 0G-billed account; the testnet
-Router API never completed a TLS handshake during the event, so the on-chain top-up loop was not built.
+**Self-funding top-up, live** (`ZG_WALLET_START=400 scripts/run_demo.sh --traffic --loop --topup` with
+`scripts/run_testnet_router_mock.py --port 8790`, 2026-11-07):
+
+- `ComputeCreditVault` on Galileo: [`0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83`](https://chainscan-galileo.0g.ai/address/0x3695359933E3485d7DbD5BDf80524F9aF6F9EF83),
+  deploy tx [`0xfb24cdb6…`](https://chainscan-galileo.0g.ai/tx/0xfb24cdb61c4c3c53d068626766530df6015654ebe5ed544507bc62eec2f9d45e);
+  smoke deposit (deployer, R-04) [`0xa168ca33…`](https://chainscan-galileo.0g.ai/tx/0xa168ca33d0cd8f6f6fbdfa89b300e15d02633f4f9f8c03165b4cce0ce57ace9b).
+- ZipKart earned its refunded stake when rivals confirmed its report (operator top-up budget 0 → 0.0001 0G).
+- 02:16:03.1 R-01 tier normal → economy (balance 145 of 400 µUSD).
+- 02:16:03.6 ZipKart's wallet `0xb347…dcd9` sent 0.00001 0G to the vault for "R-01":
+  [`0xf6a4430ceb1eb2a4bdf750938dd3b37a25035e8ee9793ea03b55632e982b26a5`](https://chainscan-galileo.0g.ai/tx/0xf6a4430ceb1eb2a4bdf750938dd3b37a25035e8ee9793ea03b55632e982b26a5) (block 64228067, status 1).
+- The testnet-Router billing stand-in indexed the Deposited event and credited 500 µUSD; R-01 read it from
+  `GET /v1/account/balance` and logged a `topup` with the tx hash.
+- 02:16:13.6 R-01 tier economy → normal (645 µUSD). No human action anywhere in the loop.
+- Stand-in proxy smoke call to the real 0G Router: request id `ade2e4ec-06b8-41f1-ac76-82d02cc9802c` (13 µUSD debited).
+
+**Limits:** the real testnet Router API never completed a TLS handshake during the event and comfy needs a
+0G-billed mainnet account, so the Router's billing side is a local, labelled stand-in (`testnet_router_mock/`):
+real on-chain deposits in, a declared demo conversion rate (1 testnet 0G = 50 USD of credit), and every inference
+call forwarded unchanged to the real 0G Router. Robot wallets are sim ledgers debited with the real per-call cost;
+the actual Router bill is paid from one USD-billed account.
+
+**Model routes:** `glm-5.3` is no longer used (302 µUSD, empty answer). Route-ahead text in every profile runs on
+`0gm-1.0-35b-a3b` (TEE); only the photo checkpoints of the economy/outage profiles use `qwen2.5-vl-72b-instruct` (NO TEE).
 
 ## Earlier probes
 - Router spike request id `e3deff71-90f3-4022-858d-f483bbf32fab` (provider `0xf4FB8d2bD856e672b5f9848b0eD235A20079B250`).

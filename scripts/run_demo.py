@@ -41,10 +41,16 @@ def main() -> int:
                     help="Stop looping after this many cycles in total (cost guard, default 5)")
     ap.add_argument("--brain-profile", default=None,
                     help="Per-checkpoint 0G model routes from settings brain.profiles "
-                         "(e.g. tee-text, outage). Default: every checkpoint on the TEE vision model")
+                         "(e.g. outage). Default: every checkpoint on the TEE vision model")
     ap.add_argument("--wallets", action="store_true",
                     help="Give every robot body its own credit wallet (brain.wallets; same as ZG_WALLETS=1)")
+    ap.add_argument("--topup", action="store_true",
+                    help="Self-funding loop: operators reinvest on-chain earnings into low robots via "
+                         "ComputeCreditVault + the testnet-Router stand-in (implies --wallets; ZG_TOPUP=1)")
     args = ap.parse_args()
+    if args.topup:
+        os.environ["ZG_TOPUP"] = "1"
+        args.wallets = True
     if args.wallets:
         os.environ["ZG_WALLETS"] = "1"
     if args.brain_profile:

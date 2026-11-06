@@ -59,23 +59,23 @@ brain:
   # (scripts/run_demo.py --brain-profile NAME or ZG_BRAIN_PROFILE). Never an automatic fallback;
   # every decision card shows the model and whether it ran in a TEE.
   profiles:
-    # 0gm-1.0-35b-a3b (the only TEE vision model) down: route-ahead decisions are text-only, so they
-    # can run on GLM-5.3 (also 0G, TeeML, sealed). Vision checkpoints stay on the default model.
+    # glm-5.3 is no longer used anywhere (measured 2026-11-07: reasoning model, ~300 micro-USD per call,
+    # empty answer at our token limits). Text routes run on 0gm-1.0-35b-a3b (TEE, sealed) instead.
+    # tee-text: every checkpoint on the TEE model (kept as a name for old commands; same as default).
     tee-text:
-      CP-H2: {model: glm-5.3, trust_mode: private}
-    # As tee-text, plus vision on a NON-TEE 0G model. Needs a Router key that allows trust mode
-    # "standard" (ZG_ROUTER_API_KEY, if its key permits it). Every card shows the model and NO TEE.
+      CP-H2: {model: 0gm-1.0-35b-a3b, trust_mode: private}
+    # Vision on a NON-TEE 0G model (when the TEE vision provider is down); route-ahead text stays on
+    # the TEE model. Needs a Router key that allows trust mode "standard". Cards show the model and NO TEE.
     outage:
-      CP-H2: {model: glm-5.3, trust_mode: private}
+      CP-H2: {model: 0gm-1.0-35b-a3b, trust_mode: private}
       CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
     # Used by robot wallets (brain.wallets.economy_profile) for a body whose credit is below the
-    # economy threshold. Explicit trust_mode on every route: all checkpoints run on a cheaper NON-TEE
-    # 0G model and its cards say NO TEE. Never silently TEE.
+    # economy threshold. Explicit trust_mode on every route. Photo checkpoints move to a cheaper
+    # NON-TEE 0G model (cards say NO TEE); text-only route-ahead (CP-H2, ~65 micro-USD) stays on the
+    # TEE model 0gm-1.0-35b-a3b. Measured 2026-11-07: qwen ~61 micro-USD with a photo vs ~90-130 on 0gm.
     economy:
-      # measured 2026-11-07: qwen ~60 micro-USD/call with a photo (~24 text) vs ~90-130 on the TEE model; glm-5.3 (reasoning)
-      # cost ~300 and returned no text, so it is not used as an economy route.
-      CP-H2: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+      CP-H2: {model: 0gm-1.0-35b-a3b, trust_mode: private}
       CP-Q:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
@@ -94,6 +94,17 @@ brain:
     economy_profile: economy
     estimate_in_micro_usd_per_1k: 20    # only if the router reports no billing
     estimate_out_micro_usd_per_1k: 60
+    # Self-funding loop (brain/topup.py). Off by default; ZG_TOPUP=1 or run_demo.py --topup.
+    # Needs ComputeCreditVault on Galileo and the testnet-Router billing stand-in on :8790
+    # (scripts/run_testnet_router_mock.py) because the real testnet Router API was unreachable.
+    topup:
+      enabled: false
+      router_mock_url: http://localhost:8790/v1
+      amount_wei: 10000000000000                       # 0.00001 testnet 0G per top-up (real Galileo tx)
+      trigger_tiers: [economy, throttled, paused]
+      max_topups_per_robot: 3
+      budget_per_confirmed_hazard_wei: 100000000000000  # operator may reinvest its refunded 0.0001 stake
+      initial_operator_budget_wei: 0                   # only on-chain earnings are reinvested
     income:
       hazard_reward_micro_usd: 600       # chain-confirmed hazard -> reporting robot (source: chain)
       verifier_reward_micro_usd: 150     # verifier drone whose verdict matched the outcome (chain)

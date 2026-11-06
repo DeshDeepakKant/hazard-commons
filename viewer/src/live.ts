@@ -108,7 +108,7 @@ export async function setSpeed(x: number): Promise<SpeedInfo | null> {
 }
 
 // ---- Robot credit wallets (viewer/src/ui/wallets.ts). Backend may be absent: null = not available.
-export interface WalletEntry { kind: "spend" | "earn" | "topup"; amount_micro_usd: number; ref: string | null; source: "router" | "chain" | "simulated" | "manual"; t_wall: number }
+export interface WalletEntry { kind: "spend" | "earn" | "topup"; amount_micro_usd: number; ref: string | null; tx_hash?: string | null; note?: string | null; source: "router" | "chain" | "simulated" | "manual"; t_wall: number }
 export type WalletTier = "normal" | "economy" | "throttled" | "paused";
 export interface RobotWallet {
   robot_id: string; operator: string; kind: "rover" | "drone"; start_micro_usd: number; balance_micro_usd: number;

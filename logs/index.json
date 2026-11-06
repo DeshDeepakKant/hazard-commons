@@ -287,6 +287,68 @@
    "zg_request_ids": [
     "MOCK-1"
    ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H2"
+   ],
+   "episode_ids": [
+    "demo-galileo-1-R-07"
+   ],
+   "error": null,
+   "explorer_url": "https://storagescan-galileo.0g.ai/tx/0xbc91063f619678fec60f59240070239f2d1aab171e39088929279a6fe347d4ef",
+   "file_sha256": "a8a54109656d27e555e515325555597df52cfa934f3c943a31c8406dad24044e",
+   "local_path": "logs/runs/demo-galileo-1/episodes/R-07/batch-0.json",
+   "operator": "DashKirana",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "b10dc5d5958ffdf58317b3f1204fccbd49560dc303b2c0599409eabe0afc55fb"
+   ],
+   "robot_id": "R-07",
+   "root_hash": "0x8e411e79c26a566492683d9d6327c3bf4c31d06154faf47c0785c94d7090044e",
+   "run_id": "demo-galileo-1",
+   "status": "uploaded",
+   "tx_hash": "0xbc91063f619678fec60f59240070239f2d1aab171e39088929279a6fe347d4ef",
+   "uploaded_at": 1793932769.0391839,
+   "written_at": 1793932753.8832192,
+   "zg_request_ids": [
+    "23206c18-2b22-444b-b055-264a778201a2"
+   ]
+  },
+  {
+   "batch": 0,
+   "checkpoints": [
+    "CP-H1"
+   ],
+   "episode_ids": [
+    "demo-galileo-1-R-04"
+   ],
+   "error": null,
+   "explorer_url": "https://storagescan-galileo.0g.ai/tx/0x3184122e3612da47e77514abec515ff52b0484da5289a3f5f1fcbfb6a42b5c21",
+   "file_sha256": "2e532ddee39aeb07bc0489332d13d5c701204955016d6392cbeacad3722435d5",
+   "local_path": "logs/runs/demo-galileo-1/episodes/R-04/batch-0.json",
+   "operator": "MinuteMart",
+   "prev_batch_last_sha256": null,
+   "record_seqs": [
+    1
+   ],
+   "record_sha256s": [
+    "53b2871d19dc81df08b9c6f07e38bb316a0d5b2a513430faac8dbe8980d1557c"
+   ],
+   "robot_id": "R-04",
+   "root_hash": "0x5aa3458839c1a5b4321b1385232ac46cbd34690120f51505325961778ea59388",
+   "run_id": "demo-galileo-1",
+   "status": "uploaded",
+   "tx_hash": "0x3184122e3612da47e77514abec515ff52b0484da5289a3f5f1fcbfb6a42b5c21",
+   "uploaded_at": 1793932776.2730958,
+   "written_at": 1793932753.8877118,
+   "zg_request_ids": [
+    "806cb6af-2eac-4942-9fdf-fb0f117fcab1"
+   ]
   }
  ],
  "runs": [
@@ -301,6 +363,21 @@
    },
    "stream_path": "logs/runs/test-rec/stream.jsonl",
    "wall_duration_s": 6.16
+  },
+  {
+   "recorded_at": 1793932753.8899958,
+   "rtf": 0.66,
+   "run_id": "demo-galileo-1",
+   "sim_duration_s": 240.0,
+   "stats": {
+    "chain_tx": 4,
+    "decision": 2,
+    "hazard": 4,
+    "order": 78,
+    "state": 2400
+   },
+   "stream_path": "logs/runs/demo-galileo-1/stream.jsonl",
+   "wall_duration_s": 361.53
   }
  ],
  "version": 1

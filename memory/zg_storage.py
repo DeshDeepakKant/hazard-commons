@@ -11,6 +11,7 @@ import logging
 import os
 import shutil
 import subprocess
+import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
@@ -25,9 +26,14 @@ class StorageError(RuntimeError):
     pass
 
 
+# One storage key signs every upload: concurrent sidecars would reuse a nonce
+# ("replacement fee too low"), so uploads are serialised process-wide.
+_UPLOAD_LOCK = threading.Lock()
+
+
 class ZGStorage:
     def __init__(self, sidecar_dir: Optional[str | Path] = None, timeout_s: float = 600.0,
-                 retries: int = 1, max_workers: int = 2, node: Optional[str] = None):
+                 retries: int = 1, max_workers: int = 1, node: Optional[str] = None):
         ss = settings().get("storage", {})
         self.sidecar_dir = Path(sidecar_dir or ROOT / ss.get("sidecar_dir", "memory/zg-storage"))
         self.timeout_s = timeout_s
@@ -37,11 +43,12 @@ class ZGStorage:
 
     # ------------------------------------------------------------------ Storage Protocol
     def upload_file(self, local_path: str) -> "Future[dict[str, Any]]":
-        return self._pool.submit(self._upload_with_retry, str(Path(local_path).resolve()))
+        return self._pool.submit(self.upload_file_sync, str(Path(local_path).resolve()))
 
     # ------------------------------------------------------------------ extras
     def upload_file_sync(self, local_path: str) -> dict[str, Any]:
-        return self._upload_with_retry(str(Path(local_path).resolve()))
+        with _UPLOAD_LOCK:
+            return self._upload_with_retry(str(Path(local_path).resolve()))
 
     def download(self, root_hash: str, out_path: str, retries: int = 6) -> "Future[dict[str, Any]]":
         def _go() -> dict[str, Any]:

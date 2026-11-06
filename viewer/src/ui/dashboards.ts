@@ -5,7 +5,7 @@ import { FSM_LABEL } from "../scene/robots";
 import { esc, el } from "./dom";
 import { opFilter } from "./filter";
 import { isRealHash, short, txUrl } from "./explorer";
-import { tierChip, usd, walletViews } from "./wallets";
+import { usd, walletViews } from "./wallets";
 
 const STAKE = 0.0001;   // 0G per report (config/settings.yaml chain.report_stake_wei)
 
@@ -90,7 +90,7 @@ export class Dashboards {
       const w = wv.get(id);
       if (!w) return `<td class="wcell muted">–</td>`;
       const frac = w.start > 0 ? Math.max(0, Math.min(1, w.balance / w.start)) : 0;
-      return `<td class="wcell"><span class="wbar wt-${esc(w.tier)}"><i style="width:${(frac * 100).toFixed(0)}%"></i></span><b>${usd(w.balance)}</b>${tierChip(w.tier)}</td>`;
+      return `<td class="wcell" title="tier: ${esc(w.tier)}"><span class="wbar wt-${esc(w.tier)}"><i style="width:${(frac * 100).toFixed(0)}%"></i></span><b>${usd(w.balance)}</b></td>`;
     };
     const rows = (store.latest?.robots ?? []).filter((r) => !f || r.operator === f).slice().sort((a, b) => a.id.localeCompare(b.id))
       .map((r) => `<tr data-robot="${esc(r.id)}" data-state="${esc(r.fsm_state)}" style="--op:${opColor(r.operator)}"><td><span class="chip"></span>${esc(r.id)}</td><td>${esc(FSM_LABEL[r.fsm_state] ?? r.fsm_state)}</td><td>${Math.round(r.battery * 100)}%</td><td>${r.speed.toFixed(1)}</td><td>${esc(r.order_id ?? "–")}</td>${credit(r.id)}</tr>`).join("");

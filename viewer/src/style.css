@@ -492,8 +492,10 @@ canvas.placing-order { cursor: crosshair !important; }
 .wchip.wt-throttled, .badge.wallet.wt-throttled { color: #f97316; }
 .wchip.wt-paused, .badge.wallet.wt-paused { color: #ef4444; }
 .badge.wallet { display: inline-block; margin: 3px 0; font-family: var(--mono); font-size: 10px; border: 1px solid currentColor; border-radius: 6px; padding: 0 6px; }
-.fleet .wcell { min-width: 150px; }
-.fleet .wcell b { margin: 0 2px 0 6px; font-weight: 500; }
+.fleet .wcell { min-width: 0; }
+.fleet .wcell .wbar { width: 22px; }
+.fleet td, .fleet th { padding: 2px 3px; }
+.fleet .wcell b { margin: 0 0 0 4px; font-weight: 500; }
 .wbar { display: inline-block; width: 36px; height: 5px; border-radius: 3px; background: #1e293b; vertical-align: middle; overflow: hidden; }
 .wbar i { display: block; height: 100%; background: currentColor; }
 .wbar.wt-normal { color: #22c55e; } .wbar.wt-economy { color: #f59e0b; } .wbar.wt-throttled { color: #f97316; } .wbar.wt-paused { color: #ef4444; }

@@ -1,6 +1,7 @@
 // Top bar: brand, mode, sim clock, 0G brain indicator, outage toggle, view controls.
 import { CONFIG } from "../config";
 import { el, fmtClock } from "./dom";
+import { openVerify } from "./verify";
 
 export interface TopbarHandlers {
   onOutage: (on: boolean) => Promise<boolean>;
@@ -37,6 +38,7 @@ export class Topbar {
         <select class="follow" title="Follow a robot"><option value="">Follow robot…</option></select>
         <button class="cine" title="Auto-orbit camera for recording (C)">🎬 Cinematic</button>
         <button class="reset" title="Reset view (R)">⟲</button>
+        <button class="verify" title="Verify any episode log on 0G Storage by its root hash (in your browser)">✓ Verify log</button>
         <button class="order primary">${live ? "🛒 Place order" : "🧾 Orders"}</button>
       </div>`;
     host.appendChild(this.root);
@@ -58,6 +60,7 @@ export class Topbar {
     this.root.querySelector(".cine")!.addEventListener("click", () => h.onCamera("cinematic"));
     this.root.querySelector(".reset")!.addEventListener("click", () => h.onCamera("reset"));
     this.root.querySelector(".order")!.addEventListener("click", () => h.onOrder());
+    this.root.querySelector(".verify")!.addEventListener("click", () => openVerify());
     this.followSel.addEventListener("change", () => h.onFollow(this.followSel.value || null));
     window.addEventListener("cammode", (e) => {
       const d = (e as CustomEvent).detail as { mode: string; followId: string | null };

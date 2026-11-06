@@ -4,6 +4,7 @@ import { CHECKPOINT_LABEL } from "../config";
 import { esc, fmtClock } from "./dom";
 import { copy, isRealHash, openStorage, txUrl } from "./explorer";
 import { summarize } from "./panel";
+import { openVerify } from "./verify";
 
 function imgSrc(b64: string): string {
   if (b64.startsWith("data:")) return b64;
@@ -35,7 +36,8 @@ export function openDecisionDetail(c: Card): void {
     ? (isRealHash(c.chainTx) ? `<a target="_blank" rel="noopener" href="${txUrl(c.chainTx)}">${esc(c.chainTx)} ↗</a>` : code(c.chainTx)) + ` <span class="muted">${esc(c.chainKind ?? "")} · ${esc(c.chainStatus ?? "")}</span>`
     : `<span class="muted">none for this decision</span>`;
   const storage = c.storageRoot
-    ? `<a href="#" class="storage-link">${esc(c.storageRoot)} ↗</a>`
+    ? `<a href="#" class="storage-link">${esc(c.storageRoot)} ↗</a>` +
+      (isRealHash(c.storageRoot) ? `<button class="mini verify-btn" title="Download this episode log from 0G Storage and re-check every hash in your browser">✓ Verify on 0G Storage</button>` : "")
     : `<span class="muted">${r.ok ? "pending upload…" : "nothing stored: no 0G answer"}</span>`;
 
   host = document.createElement("div");
@@ -70,6 +72,10 @@ export function openDecisionDetail(c: Card): void {
   host.querySelector(".x")!.addEventListener("click", close);
   host.querySelector<HTMLAnchorElement>(".storage-link")?.addEventListener("click", (e) => {
     e.preventDefault(); openStorage(c.storageRoot!, c.storageTx);
+  });
+  host.querySelector<HTMLButtonElement>(".verify-btn")?.addEventListener("click", () => {
+    const root = c.storageRoot!, tx = c.storageTx;
+    close(); openVerify(root, { storageTx: tx });
   });
   host.querySelectorAll<HTMLButtonElement>("button.cp").forEach((b) => b.addEventListener("click", () => copy(b.dataset.copy!, b)));
   document.addEventListener("keydown", onKey);

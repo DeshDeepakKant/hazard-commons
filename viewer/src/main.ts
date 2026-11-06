@@ -2,7 +2,7 @@ import "./style.css";
 import * as THREE from "three";
 import { CONFIG } from "./config";
 import { store, type Card } from "./store";
-import type { ChainTxEvent, Hazard, Order } from "./types";
+import type { ChainTxEvent, DecisionEvent, Hazard, Order, StorageEvent } from "./types";
 import { SceneView } from "./scene/index";
 import { buildGround, buildRoads, loadBuildings, loadWorldData, setRoadsOverImagery, SAT_MARGIN } from "./scene/world";
 import { Satellite } from "./scene/satellite";
@@ -13,6 +13,7 @@ import { Hazards } from "./scene/hazards";
 import { Pois } from "./scene/pois";
 import { DecisionPanel } from "./ui/panel";
 import { openDecisionDetail } from "./ui/detail";
+import { openVerify, setVerifySource } from "./ui/verify";
 import { Topbar } from "./ui/topbar";
 import { Dashboards } from "./ui/dashboards";
 import { OrderPage } from "./ui/order";
@@ -209,6 +210,12 @@ async function boot(): Promise<void> {
       if (orderPage.open) orderPage.render();
     };
     topbar.setConn("replay");
+    // the verifier cross-checks against the whole recording, not just what has been played so far
+    const rp = replay;
+    setVerifySource(() => ({
+      decisions: rp.events.filter((e) => e.topic === "decision").map((e) => e.data as DecisionEvent),
+      storage: rp.events.filter((e) => e.topic === "storage").map((e) => e.data as StorageEvent),
+    }));
     if (CONFIG.startT != null) replay.seek(CONFIG.startT); else replay.rebuild();
   } else {
     live = new LiveSource();
@@ -235,6 +242,7 @@ async function boot(): Promise<void> {
   });
 
   app.querySelector(".loading")!.remove();
+  if (CONFIG.verifyRoot) openVerify(CONFIG.verifyRoot);
 
   // ---------------------------------------------------------------- frame loop
   let slow = 0, prev = performance.now();

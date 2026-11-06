@@ -42,6 +42,8 @@ class OrderIn(BaseModel):
     building_id: str
     items: list[str] = []
     customer_name: str = "Customer"
+    priority: str = "normal"      # "normal" | "express"
+    note: str = ""
 
 
 class ToggleIn(BaseModel):
@@ -64,7 +66,13 @@ def meta() -> dict[str, Any]:
 def place_order(o: OrderIn) -> dict[str, Any]:
     if _engine is None:
         raise HTTPException(503, "sim engine not running")
-    return _engine.place_order(o.operator, o.building_id, o.items, o.customer_name)
+    try:
+        if o.priority != "normal" or o.note:
+            return _engine.place_order(o.operator, o.building_id, o.items, o.customer_name,
+                                       priority=o.priority, note=o.note)  # type: ignore[call-arg]
+        return _engine.place_order(o.operator, o.building_id, o.items, o.customer_name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.post("/api/brain/unreachable")
@@ -96,3 +104,19 @@ async def ws(websocket: WebSocket) -> None:
 _world_out = path("world/out")
 _world_out.mkdir(parents=True, exist_ok=True)
 app.mount("/world", StaticFiles(directory=str(_world_out)), name="world")
+
+
+# ======================================================================================
+# BEGIN orders v2 (cancel): keep this block together
+# ======================================================================================
+@app.post("/api/orders/{order_id}/cancel")
+def cancel_order(order_id: str) -> dict[str, Any]:
+    if _engine is None or not hasattr(_engine, "cancel_order"):
+        raise HTTPException(503, "sim engine not running")
+    try:
+        return _engine.cancel_order(order_id)  # type: ignore[attr-defined]
+    except KeyError:
+        raise HTTPException(404, f"unknown order {order_id}")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+# END orders v2

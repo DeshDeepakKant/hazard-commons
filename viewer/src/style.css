@@ -399,3 +399,33 @@ footer .powered { color: #7c8aa3; }
 .vf-lightbox img { max-width: min(1200px, 94vw); max-height: 84vh; border-radius: 10px; border: 1px solid var(--line); display: block; }
 .vf-lightbox figcaption { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
 .badge.model { background: #1e1b4b; color: #c4b5fd; border: 1px solid #4338ca; font-family: var(--mono); font-weight: 600; }
+
+/* ===== orders v2 / interactive dashboards ===== */
+.op { cursor: pointer; transition: opacity .15s, outline-color .15s; outline: 1px solid transparent; }
+.op.filtered { outline: 1px solid var(--op); }
+.op.dim { opacity: .45; }
+.fleet table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.fleet th { text-align: left; font-weight: 500; opacity: .6; padding: 2px 4px; }
+.fleet td { padding: 2px 4px; white-space: nowrap; }
+.fleet tbody tr { cursor: pointer; }
+.fleet tbody tr:hover, .hz:hover { background: rgba(255,255,255,.08); }
+.fleet .chip, .hz .chip { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--op); margin-right: 5px; }
+.hz { display: flex; gap: 8px; align-items: center; padding: 3px 4px; font-size: 11px; cursor: pointer; border-radius: 4px; }
+.hz em { margin-left: auto; opacity: .6; font-style: normal; }
+.order-page .order-row { display: flex; gap: 6px; align-items: center; cursor: pointer; padding: 4px 6px; border-radius: 4px; }
+.order-page .order-row:hover { background: rgba(255,255,255,.08); }
+.order-page .order-row em { margin-left: auto; font-style: normal; opacity: .7; }
+.order-page textarea.note { width: 100%; box-sizing: border-box; resize: vertical; background: rgba(255,255,255,.06); color: inherit; border: 1px solid rgba(255,255,255,.15); border-radius: 6px; padding: 6px; font: inherit; }
+.order-page .prio { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: 12px; }
+.order-page .quick { display: flex; gap: 6px; margin: 6px 0; }
+.order-page .ops-pick small { display: block; opacity: .6; font-size: 10px; }
+.order-page button:disabled, .order-page textarea:disabled, .order-page input:disabled { opacity: .45; cursor: not-allowed; }
+.badge.express { background: #f59e0b; color: #111; padding: 0 5px; border-radius: 4px; font-size: 10px; }
+.steps li.warn .dot { background: #f59e0b; }
+.help-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; }
+.help-overlay[hidden] { display: none; }
+.help-box { background: #14181f; color: #e8ecf1; padding: 18px 24px; border-radius: 10px; max-width: 420px; }
+.help-box dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 10px 0; }
+.help-box dd { margin: 0; opacity: .8; }
+.help-box kbd { background: rgba(255,255,255,.12); border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+/* ===== end orders v2 ===== */

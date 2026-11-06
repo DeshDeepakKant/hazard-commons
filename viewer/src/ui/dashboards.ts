@@ -1,8 +1,9 @@
 // Compact operator dashboards + on-chain activity feed.
 import { store } from "../store";
-import { OPERATORS, opColor } from "../config";
+import { HAZARD_LABEL, OPERATORS, opColor } from "../config";
 import { FSM_LABEL } from "../scene/robots";
 import { esc, el } from "./dom";
+import { opFilter } from "./filter";
 import { isRealHash, short, txUrl } from "./explorer";
 
 const STAKE = 0.0001;   // 0G per report (config/settings.yaml chain.report_stake_wei)
@@ -11,20 +12,41 @@ export class Dashboards {
   root: HTMLElement;
   private opsEl: HTMLElement;
   private txEl: HTMLElement;
+  private fleetEl: HTMLElement;
+  private hzEl: HTMLElement;
+  private fleetHtml = "";
+  private hzHtml = "";
   private last = 0;
   balances: Record<string, number | string> = {};   // from /api/meta if the engine exposes it
   onRobot: (id: string) => void = () => {};
+  onHazard: (id: string) => void = () => {};
 
   constructor(host: HTMLElement) {
     this.root = el("aside", "panel dashboards");
     this.root.innerHTML = `<header><h2>Operators</h2></header><div class="ops"></div>
+      <header class="sub-h"><h3>Fleet</h3><span class="sub">click a row to follow</span></header><div class="fleet"></div>
+      <header class="sub-h"><h3>Hazards</h3><span class="sub">click to fly there</span></header><div class="hzs"></div>
       <header class="sub-h"><h3>0G Chain activity</h3><span class="sub">HazardRegistry · Galileo</span></header><div class="txs"><div class="empty">No transactions yet</div></div>`;
     this.opsEl = this.root.querySelector(".ops")!;
     this.txEl = this.root.querySelector(".txs")!;
+    this.fleetEl = this.root.querySelector(".fleet")!;
+    this.hzEl = this.root.querySelector(".hzs")!;
     this.opsEl.addEventListener("click", (e) => {
+      const t = e.target as HTMLElement;
+      const r = t.closest<HTMLElement>("[data-robot]");
+      if (r) { this.onRobot(r.dataset.robot!); return; }
+      const c = t.closest<HTMLElement>("[data-op]");
+      if (c) opFilter.toggle(c.dataset.op!);
+    });
+    this.fleetEl.addEventListener("click", (e) => {
       const r = (e.target as HTMLElement).closest<HTMLElement>("[data-robot]");
       if (r) this.onRobot(r.dataset.robot!);
     });
+    this.hzEl.addEventListener("click", (e) => {
+      const r = (e.target as HTMLElement).closest<HTMLElement>("[data-hz]");
+      if (r) this.onHazard(r.dataset.hz!);
+    });
+    opFilter.on(() => this.update(true));
     host.appendChild(this.root);
   }
 
@@ -41,7 +63,7 @@ export class Dashboards {
       const staked = (s.reports * STAKE).toFixed(4), slashed = (s.rejected * STAKE).toFixed(4);
       const robots = s.robots.slice().sort((a, b) => a.id.localeCompare(b.id)).map((r) =>
         `<span class="rpill" data-robot="${esc(r.id)}" data-state="${esc(r.fsm_state)}" title="${esc(r.id)} · ${esc(r.fsm_state)}${r.note ? " · " + esc(r.note) : ""}"><i>${r.kind === "drone" ? "✈" : "●"}</i>${esc(r.id)}<em>${esc(FSM_LABEL[r.fsm_state] ?? r.fsm_state)}</em></span>`).join("");
-      return `<section class="op" style="--op:${opColor(op)}">
+      return `<section class="op${opFilter.op === op ? " filtered" : ""}${opFilter.op && opFilter.op !== op ? " dim" : ""}" data-op="${esc(op)}" title="Click to filter the decision feed and orders to ${esc(op)}" style="--op:${opColor(op)}">
         <div class="op-head"><span class="chip"></span><b>${esc(op)}</b><span class="dec">${s.decisions} 0G calls${s.errors ? ` · <span class="err">${s.errors} safe-stops</span>` : ""}</span></div>
         <div class="kpis">
           <div><b>${s.delivered}</b><span>delivered</span></div>
@@ -54,7 +76,25 @@ export class Dashboards {
         <div class="robots">${robots || `<span class="muted">no robots yet</span>`}</div>
       </section>`;
     }).join("");
+    this.renderFleet();
+    this.renderHazards();
     this.renderTxs();
+  }
+
+  private renderFleet(): void {
+    const f = opFilter.op;
+    const rows = (store.latest?.robots ?? []).filter((r) => !f || r.operator === f).slice().sort((a, b) => a.id.localeCompare(b.id))
+      .map((r) => `<tr data-robot="${esc(r.id)}" data-state="${esc(r.fsm_state)}" style="--op:${opColor(r.operator)}"><td><span class="chip"></span>${esc(r.id)}</td><td>${esc(FSM_LABEL[r.fsm_state] ?? r.fsm_state)}</td><td>${Math.round(r.battery * 100)}%</td><td>${r.speed.toFixed(1)}</td><td>${esc(r.order_id ?? "–")}</td></tr>`).join("");
+    const html = rows ? `<table><thead><tr><th>Robot</th><th>State</th><th>Batt</th><th>m/s</th><th>Order</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">No robots yet</div>`;
+    if (html !== this.fleetHtml) { this.fleetHtml = html; this.fleetEl.innerHTML = html; }
+  }
+
+  private renderHazards(): void {
+    const hs = Array.from(store.hazards.values()).filter((h) => h.status !== "cleared" && h.status !== "rejected")
+      .sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 8);
+    const html = hs.map((h) => `<div class="hz st-${esc(h.status)}" data-hz="${esc(h.id)}" style="--op:${opColor(h.reporter_operator)}"><span class="chip"></span><b>${esc(HAZARD_LABEL[h.type] ?? h.type)}</b><span>${esc(h.status)}</span><em>sev ${h.severity.toFixed(1)}</em></div>`).join("")
+      || `<div class="empty">No active hazards</div>`;
+    if (html !== this.hzHtml) { this.hzHtml = html; this.hzEl.innerHTML = html; }
   }
 
   private renderTxs(): void {

@@ -35,7 +35,9 @@ operators:
   - {id: 1, name: MinuteMart, color: "#2f8cff", rovers: 3}
   - {id: 2, name: DashKirana, color: "#22c55e", rovers: 2}
 drones:
-  - {id: D-01, operator: ZipKart}
+  # base_xy (optional, local frame): take-off pad. ZipKart runs its verification drone from a
+  # central rooftop hub (closer to the west side of the map); default = a clear pad near the store.
+  - {id: D-01, operator: ZipKart, base_xy: [-260, 60]}
   - {id: D-02, operator: MinuteMart}
 
 brain:

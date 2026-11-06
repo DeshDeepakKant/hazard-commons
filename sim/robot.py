@@ -107,6 +107,11 @@ class Rover(RobotBase):
         self._kerb_active = False
         self._odo = 0.0
         self._last_xy = np.array(xy[:2], dtype=float)
+        # deadlock breaker: two robots braking for each other (e.g. a U-turn after a reroute)
+        # would wait forever. After STALL_S the pair stops seeing/colliding with each other.
+        self._ignore_ids: set[int] = set()
+        self._stall_body: Optional[int] = None
+        self._stall_t = 0.0
 
     # ------------------------------------------------------------------ pose
     def pose(self) -> tuple[float, float, float, float, float]:
@@ -221,9 +226,11 @@ class Rover(RobotBase):
         self._poll_checkpoint(now)
         x, y, z, yaw, v_now = self.pose()
         self.last_scan = self.lidar.scan(x, y, yaw, z=0.0)
-        lim, free = reflex_speed_limit(self.last_scan, self.half_width, self.brake_dist)
+        lim, free = reflex_speed_limit(self.last_scan, self.half_width, self.brake_dist,
+                                       ignore_ids=self._ignore_ids or None)
         self.reflex_free_dist = free
         self.reflex_braking = lim == 0.0
+        self._break_robot_deadlock(now, lim)
 
         v, w = 0.0, 0.0
         if self.paused:
@@ -251,6 +258,50 @@ class Rover(RobotBase):
         self._odo += float(np.linalg.norm(xy - self._last_xy))
         self._last_xy = xy
         self.battery = max(0.0, 1.0 - self._odo / 20000.0)
+
+    STALL_S = 4.0
+
+    def _robot_bodies(self) -> dict[int, "Rover"]:
+        out: dict[int, Rover] = {}
+        for r in self.world.robots.values():
+            if r is self or not isinstance(r, Rover):
+                continue
+            out[r.body] = r
+            out[r.cargo] = r
+        return out
+
+    def _break_robot_deadlock(self, now: float, lim: float) -> None:
+        sc = self.last_scan
+        if lim != 0.0 or self.paused or self.route is None or self.arrived or sc is None:
+            self._stall_body = None
+            return
+        fwd = sc.dists * np.cos(sc.angles)
+        lat = sc.dists * np.sin(sc.angles)
+        hit = (sc.body_ids >= 0) & (fwd > 0) & (np.abs(lat) < self.half_width + 0.35)
+        if self._ignore_ids:
+            hit &= ~np.isin(sc.body_ids, list(self._ignore_ids))
+        if not hit.any():
+            return
+        blocker = int(sc.body_ids[hit][int(np.argmin(fwd[hit]))])
+        other = self._robot_bodies().get(blocker)
+        if other is None:                    # props / buildings / traffic: keep waiting
+            self._stall_body = None
+            return
+        if self._stall_body != blocker:
+            self._stall_body, self._stall_t = blocker, now
+            return
+        if now - self._stall_t < self.STALL_S:
+            return
+        c = self.client
+        for a in (self, other):
+            a._ignore_ids |= {b for b in (self.body, self.cargo, other.body, other.cargo)
+                              if b not in (a.body, a.cargo)}
+        for a in (self.body, self.cargo):
+            for b in (other.body, other.cargo):
+                for j in range(-1, p.getNumJoints(a, physicsClientId=c)):
+                    for k in range(-1, p.getNumJoints(b, physicsClientId=c)):
+                        p.setCollisionFilterPair(a, b, j, k, 0, physicsClientId=c)
+        self._stall_body = None
 
     def _apply(self, v: float, w: float, yaw: float) -> None:
         c = self.client

@@ -119,28 +119,35 @@ def test_engine_cp_h1_and_reporting(engine: Engine):
 
 def test_engine_cp_h2_reroute(engine: Engine):
     rover = next(r for r in engine.world.robots.values() if isinstance(r, Rover) and r.operator == "ZipKart")
-    edge_ids = list(engine.world.planner.edges.keys())
-    target_edge = edge_ids[5]
+    home = engine.homes_by_id["H-21"]
+    route = rover.drive_to(home["entrance_xy"], goal_node=home["entrance_node"], state=FsmState.DELIVERING)
+    assert route is not None and len(route.edge_ids) > 4
+    target_edge = route.edge_ids[3]
 
-    # Report a hazard on target_edge
-    engine.chain.report_hazard("MinuteMart", "R-04", target_edge, "road_works", 0.8)
-
-    # Assign route containing target_edge
-    rover.route_edge_ids = [target_edge]
-    rover.set_state(FsmState.DELIVERING)
+    # A rival report on that edge, confirmed by a third operator -> active on the shared map
+    fut = engine.report_hazard("MinuteMart", "R-04", target_edge, "road_works", 0.8)
+    hid = fut.result()["hazard_id"]
+    # unverified reports never trigger CP-H2
+    for _ in range(5):
+        engine.step(0.05)
+    assert hid not in engine.robot_decided_hazards[rover.id]
+    engine.chain.verify_hazard("ZipKart", "D-01", hid, True)
 
     decisions = []
     BUS.subscribe_sync(decisions.append, {"decision"})
 
-    for _ in range(40):
+    for _ in range(60):
         engine.step(0.05)
         if any(d.data["result"]["checkpoint"] == "CP-H2" for d in decisions):
             break
+    for _ in range(40):   # let the reroute apply
+        engine.step(0.05)
 
     h2_decs = [d for d in decisions if d.data["result"]["checkpoint"] == "CP-H2"]
     assert len(h2_decs) >= 1
     assert h2_decs[0].data["action_taken"] == "reroute"
     assert target_edge in engine.get_blocked_edges(rover)
+    assert target_edge not in rover.route.edge_ids
 
 
 def test_engine_safe_stop_on_unreachable_brain(engine: Engine):

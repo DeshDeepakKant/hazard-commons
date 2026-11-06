@@ -59,8 +59,21 @@ def main() -> int:
     # 2. Track envelopes by topic for summary statistics
     stats: dict[str, int] = {}
 
+    story: list[str] = []
+
     def count_env(env):
         stats[env.topic] = stats.get(env.topic, 0) + 1
+        try:
+            d = env.data.model_dump(mode="json") if hasattr(env.data, "model_dump") else env.data
+            if env.topic == "decision":
+                r = d["result"]
+                story.append(f"{env.t:6.1f}s {r['checkpoint']:5s} {r['robot_id']} {d['operator']:10s} "
+                             f"ok={r['ok']} -> {d['action_taken']}")
+            elif env.topic == "hazard":
+                story.append(f"{env.t:6.1f}s hazard #{d['id']} {d['type']} by {d['reporter_operator']}: "
+                             f"{d['status']} (c={d['confirms']} d={d['disputes']})")
+        except Exception:
+            pass
 
     BUS.subscribe_sync(count_env)
 
@@ -112,6 +125,12 @@ def main() -> int:
 
     size_mb = out_path.stat().st_size / (1024 * 1024) if out_path.exists() else 0.0
 
+    print("\n  STORY (decisions + hazard status changes):")
+    for line in story:
+        print("   ", line)
+    used = getattr(engine.brain, "calls_used", None)
+    if used is not None:
+        print(f"\n  0G router calls used: {used} / {getattr(engine.brain, 'max_calls', '?')}")
     print("\n" + "=" * 68)
     print("  RECORDING COMPLETE")
     print(f"  Sim time: {sim_duration:.1f}s in {wall_duration:.1f}s wall clock ({rtf_actual:.2f}x RTF)")

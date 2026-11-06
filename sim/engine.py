@@ -329,7 +329,15 @@ class Engine:
         self.robot_seq: dict[str, int] = defaultdict(int)
         self.delivery_state: dict[str, dict[str, Any]] = {}
 
-        # pending drone verifications: list of dicts
+        # Hazards reported by THIS run (hazard ids from our own report futures). A persistent
+        # chain (Galileo) replays every hazard since deployment; old runs' reports must not
+        # trigger CP-H2/CP-V, block edges or show up in this run's snapshots.
+        self._run_hazard_lock = threading.Lock()
+        self.run_hazard_ids: set[str] = set()
+        self._deferred_chain_events: list[tuple[float, dict[str, Any]]] = []
+
+        # verification queue (waiting for a free rival drone) and dispatched verifications
+        self.verification_queue: list[dict[str, Any]] = []
         self.pending_verifications: list[dict[str, Any]] = []
 
         # scenario engine
@@ -346,9 +354,27 @@ class Engine:
 
     # ------------------------------------------------------------------ initialization helpers
     def _init_chain(self) -> Chain:
+        """Chain selection. `HC_CHAIN=local|anvil|galileo` forces one backend (dev/tests);
+        unset = auto (Galileo if deployed, else Anvil, else in-memory). DEMO=1 always requires
+        Galileo and refuses any other HC_CHAIN value."""
         galileo_path = ROOT / "chain" / "deployments" / "galileo.json"
         anvil_path = ROOT / "chain" / "deployments" / "anvil.json"
+        forced = (os.environ.get("HC_CHAIN") or "").strip().lower()
+        if forced not in ("", "local", "anvil", "galileo"):
+            raise ValueError(f"HC_CHAIN must be local|anvil|galileo, got {forced!r}")
+        if is_demo() and forced not in ("", "galileo"):
+            raise RuntimeError(f"DEMO=1 requires the Galileo chain; HC_CHAIN={forced!r} is refused.")
+        if forced == "local":
+            log.info("HC_CHAIN=local: using LocalHazardChain (in-memory)")
+            return LocalHazardChain(on_tx=self._on_chain_tx, sim_time_fn=lambda: self.sim_time)
         from chain.bindings import HazardChain
+        if forced == "anvil":
+            hc = HazardChain.from_deployment("anvil", on_tx=self._on_chain_tx,
+                                             sim_time_fn=lambda: self.sim_time)
+            if not hc.w3.is_connected():
+                raise RuntimeError("HC_CHAIN=anvil but anvil RPC is not reachable")
+            hc.start_polling()
+            return hc
 
         if galileo_path.exists():
             try:
@@ -397,13 +423,56 @@ class Engine:
                 xy = (s_xy[0] + offset_x, s_xy[1])
                 self.world.add_rover(rid, op_name, xy, color=color, mode="physics")
 
-        # drones per config (D-01: ZipKart, D-02: MinuteMart)
+        # drones per config (D-01: ZipKart, D-02: MinuteMart). The pad must be OUTSIDE every
+        # building collision box: the store centroid is inside the store building, and a drone
+        # spawned there can never take off (that is why no CP-V ever happened).
         for d in self.cfg.get("drones", []):
             did = d["id"]
             op_name = d["operator"]
             store = self.stores_by_op.get(op_name)
-            d_xy = (store["x"] + 5.0, store["y"] + 5.0) if store else self.world.planner.nodes[self.rng.choice(nodes)]
+            if d.get("base_xy"):
+                d_xy = self._free_pad_near([float(v) for v in d["base_xy"]], min_r=0.0)
+            elif store:
+                d_xy = self._free_pad_near(store["entrance_xy"])
+            else:
+                d_xy = self.world.planner.nodes[self.rng.choice(nodes)]
             self.world.add_drone(did, op_name, d_xy)
+
+    def _free_pad_near(self, xy: Sequence[float], min_r: float = 7.0, max_r: float = 30.0,
+                       margin: float = 2.0) -> tuple[float, float]:
+        """Deterministic take-off pad near `xy`: first point on growing rings that is clear of
+        all building boxes (with margin) and >= min_r from the rover spawn line."""
+        boxes = []
+        bp = self.world_dir / "collision" / "boxes.json"
+        if bp.exists():
+            for b in json.loads(bp.read_text()):
+                cx, cy, _ = b["center"]
+                if abs(cx - xy[0]) < max_r + 60 and abs(cy - xy[1]) < max_r + 60:
+                    boxes.append(b)
+
+        def clear(px: float, py: float) -> bool:
+            for b in boxes:
+                cx, cy, _ = b["center"]
+                hx, hy, _ = b["half_extents"]
+                yaw = float(b.get("yaw", 0.0))
+                dx, dy = px - cx, py - cy
+                lx = dx * math.cos(yaw) + dy * math.sin(yaw)
+                ly = -dx * math.sin(yaw) + dy * math.cos(yaw)
+                if abs(lx) < hx + margin and abs(ly) < hy + margin:
+                    return False
+            return True
+
+        if min_r <= 0.0 and clear(float(xy[0]), float(xy[1])):
+            return (float(xy[0]), float(xy[1]))
+        r = max(min_r, 2.0)
+        while r <= max_r:
+            for k in range(16):
+                a = math.pi / 2 + k * (2 * math.pi / 16)
+                px, py = xy[0] + r * math.cos(a), xy[1] + r * math.sin(a)
+                if clear(px, py):
+                    return (px, py)
+            r += 2.0
+        return (float(xy[0]), float(xy[1]) + min_r)
 
     # ------------------------------------------------------------------ bus callbacks
     def _on_order_changed(self, order: Order) -> None:
@@ -535,9 +604,46 @@ class Engine:
                     rover.order_id = None
                     del self.delivery_state[rover_id]
 
+    # ------------------------------------------------------------------ run-scoped hazards
+    def report_hazard(self, operator: str, robot_id: str, edge_id: str, hazard_type: str,
+                      severity: float, evidence_root: Optional[str] = None,
+                      zg_request_id: Optional[str] = None,
+                      passable_for: Optional[list[str]] = None) -> "Future[dict[str, Any]]":
+        """reportHazard via the chain + remember the hazard id as belonging to this run."""
+        fut = self.chain.report_hazard(operator=operator, robot_id=robot_id, edge_id=edge_id,
+                                       hazard_type=hazard_type, severity=severity,
+                                       evidence_root=evidence_root, zg_request_id=zg_request_id,
+                                       passable_for=passable_for)
+
+        def _done(f: "Future[dict[str, Any]]") -> None:
+            try:
+                res = f.result()
+            except Exception:
+                return
+            hid = res.get("hazard_id") if res.get("status") == "mined" else None
+            if hid is not None:
+                with self._run_hazard_lock:
+                    self.run_hazard_ids.add(str(hid))
+            else:
+                log.warning("reportHazard on %s failed: %s", edge_id, res.get("error"))
+
+        fut.add_done_callback(_done)
+        return fut
+
+    def is_run_hazard(self, hazard_id: Any) -> bool:
+        with self._run_hazard_lock:
+            return str(hazard_id) in self.run_hazard_ids
+
+    def run_hazards(self) -> list[Hazard]:
+        """Hazards reported during this run (the live shared map for this episode)."""
+        with self._run_hazard_lock:
+            ids = set(self.run_hazard_ids)
+        return [h for h in self.chain.hazards() if h.id in ids]
+
     # ------------------------------------------------------------------ checkpoints
     def _check_cp_h1(self) -> None:
-        """CP-H1: Hazard encounter when a prop enters sensor range."""
+        """CP-H1: Hazard encounter when a PHYSICAL prop enters sensor range (fake reports have
+        nothing physical, so no sensor ever fires on them)."""
         for r in self.world.robots.values():
             if not isinstance(r, Rover) or r.paused or r.in_safe_stop:
                 continue
@@ -546,7 +652,7 @@ class Engine:
 
             rx, ry, _, ryaw, _ = r.pose()
             for prop in self.props.values():
-                if prop.id in self.reported_props:
+                if prop.id in self.reported_props or not prop.real:
                     continue
 
                 dist = math.hypot(rx - prop.x, ry - prop.y)
@@ -601,31 +707,42 @@ class Engine:
 
         def on_ok(robot: Any, res: CheckpointResult) -> None:
             out = res.output or {}
-            if out.get("is_hazard"):
-                htype = out.get("type", "accident")
-                sev = float(out.get("severity", 0.8))
-                passable = out.get("passable_for", ["drone"])
-                self.chain.report_hazard(
-                    operator=robot.operator,
-                    robot_id=robot.id,
-                    edge_id=prop.edge_id,
-                    hazard_type=htype,
-                    severity=sev,
-                    evidence_root=obs.sha256,
-                    zg_request_id=res.zg_request_id,
-                    passable_for=passable,
-                )
-                self.schedule_verification(
-                    prop,
-                    reporter_op=robot.operator,
-                    hazard_type=htype,
-                    severity=sev,
-                    zg_request_id=res.zg_request_id,
-                    evidence_root=obs.sha256,
-                )
-                if "rover" not in passable or sev >= 0.5:
-                    self.block_edge(prop.edge_id)
-                    robot.replan(blocked_edge_ids=self.get_blocked_edges(robot))
+            if not out.get("is_hazard"):
+                robot.note = "0G: no hazard, proceeding"
+                return
+            htype = out.get("type") or prop.type
+            if htype == "none":
+                htype = prop.type
+            sev = float(out.get("severity", 0.8))
+            passable = list(out.get("passable_for") or [])
+            fut = self.report_hazard(
+                operator=robot.operator,
+                robot_id=robot.id,
+                edge_id=prop.edge_id,
+                hazard_type=htype,
+                severity=sev,
+                evidence_root=obs.sha256,
+                zg_request_id=res.zg_request_id,
+                passable_for=passable,
+            )
+            self.schedule_verification(
+                prop,
+                reporter_op=robot.operator,
+                hazard_type=htype,
+                severity=sev,
+                zg_request_id=res.zg_request_id,
+                evidence_root=obs.sha256,
+                report_future=fut,
+            )
+            if "rover" not in passable:
+                # 0G says this body type cannot pass: the reporter reroutes around it itself
+                # (others decide for themselves at CP-H2 once a rival has verified it).
+                self.block_edge_for_robot(robot.id, prop.edge_id)
+                robot.replan(blocked_edge_ids=self.get_blocked_edges(robot))
+                robot.note = (f"0G: {htype} impassable for rovers"
+                              f"{' (drone OK)' if 'drone' in passable else ''}; reported + rerouted")
+            else:
+                robot.note = f"0G: {htype} passable for rovers; reported, proceeding"
 
         def on_result(robot: Any, res: CheckpointResult) -> None:
             action = ("report_hazard" if (res.ok and res.output and res.output.get("is_hazard"))
@@ -644,28 +761,66 @@ class Engine:
 
     def schedule_verification(self, prop: HazardProp, reporter_op: str, hazard_type: str,
                               severity: float, zg_request_id: Optional[str] = None,
-                              evidence_root: Optional[str] = None) -> None:
-        """Dispatch a drone from a different operator to verify the reported hazard."""
-        rival_drones = [d for d in self.world.robots.values()
-                        if isinstance(d, Drone) and d.operator != reporter_op and not d.paused]
-        if not rival_drones:
-            rival_drones = [d for d in self.world.robots.values() if isinstance(d, Drone) and not d.paused]
-        if not rival_drones:
-            log.warning("no drone available to verify hazard on %s", prop.edge_id)
-            return
-
-        drone = rival_drones[0]
-        drone.fly_to((prop.x, prop.y), alt=40.0, state=FsmState.VERIFYING)
-        drone.note = f"verifying {hazard_type} on {prop.edge_id}"
-        self.pending_verifications.append({
-            "drone_id": drone.id,
+                              evidence_root: Optional[str] = None,
+                              report_future: Optional[Future] = None,
+                              hazard_id: Optional[str] = None) -> None:
+        """Queue a verification of a report. `_dispatch_verifications` sends the nearest free
+        drone of a DIFFERENT operator than the reporter (contract rule) as soon as one exists."""
+        self.verification_queue.append({
             "prop": prop,
             "reporter_op": reporter_op,
             "hazard_type": hazard_type,
             "severity": severity,
             "zg_request_id": zg_request_id,
             "evidence_root": evidence_root,
+            "report_future": report_future,
+            "hazard_id": hazard_id,
+            "queued_at": self.sim_time,
         })
+        self._dispatch_verifications()
+
+    def _busy_drones(self) -> set[str]:
+        return {v["drone_id"] for v in self.pending_verifications}
+
+    def _dispatch_verifications(self) -> None:
+        if not self.verification_queue:
+            return
+        busy = self._busy_drones()
+        for v in list(self.verification_queue):
+            prop = v["prop"]
+            cands = [d for d in self.world.robots.values()
+                     if isinstance(d, Drone) and d.operator != v["reporter_op"]
+                     and d.id not in busy and not d.paused]
+            if not cands:
+                continue
+            drone = min(cands, key=lambda d: math.hypot(d.pose()[0] - prop.x, d.pose()[1] - prop.y))
+            busy.add(drone.id)
+            self.verification_queue.remove(v)
+            drone.fly_to((prop.x, prop.y), alt=40.0, state=FsmState.VERIFYING)
+            drone.note = f"verifying {v['reporter_op']}'s {v['hazard_type']} report on {prop.edge_id}"
+            v["drone_id"] = drone.id
+            v["dispatched_at"] = self.sim_time
+            self.pending_verifications.append(v)
+            log.info("dispatched %s (%s) to verify %s's %s on %s", drone.id, drone.operator,
+                     v["reporter_op"], v["hazard_type"], prop.edge_id)
+
+    def _verification_hazard_id(self, v: dict[str, Any]) -> Optional[str]:
+        """Hazard id of the report being verified: from our own report future (never from an
+        edge-id lookup, which could match an older report on the same edge)."""
+        if v.get("hazard_id"):
+            return str(v["hazard_id"])
+        fut = v.get("report_future")
+        if fut is None or not fut.done():
+            return None
+        try:
+            res = fut.result()
+        except Exception:
+            res = {"status": "failed"}
+        if res.get("status") != "mined" or res.get("hazard_id") is None:
+            v["failed"] = res.get("error") or "report failed"
+            return None
+        v["hazard_id"] = str(res["hazard_id"])
+        return v["hazard_id"]
 
     def _check_cp_v(self) -> None:
         """CP-V: Aerial or rival verification when drone reaches the reported spot."""
@@ -674,15 +829,22 @@ class Engine:
             if not isinstance(drone, Drone) or drone.paused or drone.in_safe_stop:
                 continue
 
+            hid = self._verification_hazard_id(v)
+            if v.get("failed"):
+                log.warning("verification of %s dropped: %s", v["prop"].edge_id, v["failed"])
+                self.pending_verifications.remove(v)
+                drone.return_home()
+                continue
+
             prop = v["prop"]
             dx, dy, dz, *_ = drone.pose()
             dist_xy = math.hypot(dx - prop.x, dy - prop.y)
-            if dist_xy <= 6.0 or drone.at_target:
+            if hid is not None and (dist_xy <= 6.0 or drone.at_target):
                 self.pending_verifications.remove(v)
                 self.verified_props.add(prop.id)
-                self._trigger_cp_v(drone, v)
+                self._trigger_cp_v(drone, v, hid)
 
-    def _trigger_cp_v(self, drone: Drone, v_data: dict[str, Any]) -> None:
+    def _trigger_cp_v(self, drone: Drone, v_data: dict[str, Any], hazard_id: str) -> None:
         prop: HazardProp = v_data["prop"]
         drone.hover()
 
@@ -702,13 +864,6 @@ class Engine:
         seq = self._next_seq(drone.id)
         ep_id = self.episode_id_for(drone.id)
 
-        # find on-chain hazard id if available
-        matching_hid = ""
-        for hz in self.chain.hazards():
-            if hz.edge_id == prop.edge_id:
-                matching_hid = hz.id
-                break
-
         req = CheckpointRequest(
             robot_id=drone.id,
             operator=drone.operator,
@@ -720,7 +875,7 @@ class Engine:
             frame_png_b64=obs.png_b64,
             context={
                 "claim": {
-                    "hazard_id": matching_hid,
+                    "hazard_id": hazard_id,
                     "edge_id": prop.edge_id,
                     "type": v_data["hazard_type"],
                     "severity": v_data["severity"],
@@ -733,28 +888,21 @@ class Engine:
 
         def on_ok(robot: Any, res: CheckpointResult) -> None:
             out = res.output or {}
-            verdict = out.get("verdict", "confirm")
-            confirm = (verdict == "confirm")
-            hid = matching_hid
-            if not hid:
-                for hz in self.chain.hazards():
-                    if hz.edge_id == prop.edge_id:
-                        hid = hz.id
-                        break
-            if hid:
+            verdict = out.get("verdict")
+            if verdict in ("confirm", "dispute"):
                 self.chain.verify_hazard(
                     operator=robot.operator,
                     robot_id=robot.id,
-                    hazard_id=hid,
-                    confirm=confirm,
+                    hazard_id=hazard_id,
+                    confirm=(verdict == "confirm"),
                     evidence_root=obs.sha256,
                     zg_request_id=res.zg_request_id,
                 )
             robot.return_home()
-            robot.note = f"verification complete: {verdict}"
+            robot.note = f"0G verdict on hazard #{hazard_id}: {verdict}"
 
         def on_result(robot: Any, res: CheckpointResult) -> None:
-            action = res.output.get("verdict", "confirm") if res.ok else "safe_stop"
+            action = (res.output or {}).get("verdict", "none") if res.ok else "safe_stop"
             rec = record_from_result(req, res, action_taken=action)
             self.episode_log.append(rec, frame_b64=obs.png_b64)
             BUS.publish("decision", self.sim_time, DecisionEvent(
@@ -767,10 +915,22 @@ class Engine:
 
         drone.begin_checkpoint(self.brain, req, on_ok=on_ok, on_result=on_result, now=self.sim_time)
 
+    @staticmethod
+    def remaining_route_edges(r: Rover) -> list[str]:
+        """Edges from the rover's current edge to the end of its route."""
+        if r.route is None or r.arrived:
+            return []
+        ids = list(r.route.edge_ids)
+        cur = r.current_edge()
+        k = ids.index(cur) if cur in ids else 0
+        return ids[k:]
+
     def _check_cp_h2(self) -> None:
-        """CP-H2: Route-ahead decision when an active report lies on upcoming edges."""
-        active_hazards = [h for h in self.chain.hazards() if h.status in ("reported", "confirmed")]
-        if not active_hazards:
+        """CP-H2: route-ahead decision when a CONFIRMED (rival-verified) report of this run lies
+        anywhere on the rover's remaining route. Unverified reports are not acted upon (they are
+        pending verification), which is what makes a fake report harmless."""
+        active = [h for h in self.run_hazards() if h.status == "confirmed"]
+        if not active:
             return
 
         for r in self.world.robots.values():
@@ -778,19 +938,30 @@ class Engine:
                 continue
             if not r.accepts_unverified_reports:
                 continue
-
-            upcoming = r.upcoming_edges(n=3)
-            if not upcoming and r.route_edge_ids:
-                upcoming = r.route_edge_ids[:3]
-            for h in active_hazards:
-                if h.edge_id in upcoming and h.id not in self.robot_decided_hazards[r.id]:
+            if r.fsm_state not in (FsmState.DELIVERING, FsmState.TO_STORE, FsmState.RETURNING):
+                continue
+            ahead = self.remaining_route_edges(r)
+            if not ahead:
+                continue
+            for h in active:
+                if h.edge_id in ahead and h.id not in self.robot_decided_hazards[r.id] \
+                        and h.edge_id not in self.robot_blocked_edges[r.id]:
                     self.robot_decided_hazards[r.id].add(h.id)
-                    self._trigger_cp_h2(r, h)
+                    self._trigger_cp_h2(r, h, ahead)
                     break
 
-    def _trigger_cp_h2(self, rover: Rover, h: Hazard) -> None:
+    def _route_dist_to(self, r: Rover, edge_id: str, ahead: Sequence[str]) -> float:
+        d = 0.0
+        for e in ahead:
+            if e == edge_id:
+                break
+            d += float(self.world.planner.edges.get(e, {}).get("length", 0.0))
+        return d
+
+    def _trigger_cp_h2(self, rover: Rover, h: Hazard, ahead: Sequence[str] = ()) -> None:
         seq = self._next_seq(rover.id)
         ep_id = self.episode_id_for(rover.id)
+        edge = self.world.planner.edges.get(h.edge_id, {})
 
         req = CheckpointRequest(
             robot_id=rover.id,
@@ -805,15 +976,20 @@ class Engine:
                 "report": {
                     "hazard_id": h.id,
                     "edge_id": h.edge_id,
+                    "road_name": edge.get("name"),
                     "type": h.type,
                     "severity": h.severity,
                     "status": h.status,
                     "passable_for": h.passable_for,
+                    "evidence_root": h.evidence_root,
+                    "zg_request_id": h.zg_request_id,
                 },
                 "confirms": h.confirms,
                 "disputes": h.disputes,
                 "reporter_operator": h.reporter_operator,
                 "my_operator": rover.operator,
+                "my_kind": rover.kind,
+                "distance_along_route_m": round(self._route_dist_to(rover, h.edge_id, ahead), 1),
                 "urgency": "normal",
                 "task": rover.fsm_state.value,
                 "_mock_truth": {"type": h.type, "real": True},
@@ -822,18 +998,20 @@ class Engine:
 
         def on_ok(robot: Any, res: CheckpointResult) -> None:
             out = res.output or {}
-            action = out.get("action", "reroute")
+            action = out.get("action")
             if action == "reroute":
                 self.block_edge_for_robot(robot.id, h.edge_id)
                 robot.replan(blocked_edge_ids=self.get_blocked_edges(robot))
-                robot.note = f"rerouted around {h.edge_id}"
+                robot.note = f"0G: reroute around {h.type} #{h.id} ({edge.get('name') or h.edge_id})"
             elif action == "wait":
-                robot.note = "waiting at checkpoint"
-            elif action == "proceed":
-                robot.note = "proceeding past report"
+                robot.note = f"0G: wait/slow for {h.type} #{h.id}"
+            elif action == "handoff_to_drone":
+                robot.note = f"0G: hand-off to drone suggested ({h.type} #{h.id})"
+            else:
+                robot.note = f"0G: proceed past {h.type} #{h.id}"
 
         def on_result(robot: Any, res: CheckpointResult) -> None:
-            action = res.output.get("action", "reroute") if res.ok else "safe_stop"
+            action = (res.output or {}).get("action", "none") if res.ok else "safe_stop"
             rec = record_from_result(req, res, action_taken=action)
             self.episode_log.append(rec, frame_b64=None)
             BUS.publish("decision", self.sim_time, DecisionEvent(
@@ -848,11 +1026,23 @@ class Engine:
 
     # ------------------------------------------------------------------ chain events & SUMO sync
     def _process_chain_events(self) -> None:
-        for ev in self.chain.poll_events():
+        evs = self.chain.poll_events()
+        # events whose hazard id is not (yet) known as ours: our report future may resolve a
+        # moment after the poller saw the log. Keep them ~30 s, then drop (older runs' hazards).
+        if self._deferred_chain_events:
+            dropped, again = [], []
+            for t0, ev in self._deferred_chain_events:
+                (again if self.sim_time - t0 < 30.0 else dropped).append((t0, ev))
+            self._deferred_chain_events = []
+            evs = [ev for _, ev in again] + list(evs)
+        for ev in evs:
             ev_name = ev.get("event")
             hid = str((ev.get("args") or {}).get("hazardId") or ev.get("hazard_id") or "")
             if not hid.isdigit():
                 continue   # operator/robot registration or delivery events carry no hazard id
+            if not self.is_run_hazard(hid):
+                self._deferred_chain_events.append((self.sim_time, ev))
+                continue
             hz = self.chain.hazard(hid)
             if not hz:
                 continue
@@ -861,21 +1051,15 @@ class Engine:
 
             if ev_name == "HazardResolved" or hz.status in ("confirmed", "rejected", "cleared"):
                 if hz.status == "confirmed":
-                    self.block_edge(hz.edge_id)
-                    # close SUMO lanes
-                    for se in self.edge_to_sumo_edges.get(hz.edge_id, []):
-                        if self.traffic_bridge:
+                    # shared map: each rover decides at CP-H2 (0G) whether to reroute; the
+                    # local planner does NOT silently avoid it. Background traffic is closed.
+                    if self.traffic_bridge:
+                        for se in self.edge_to_sumo_edges.get(hz.edge_id, []):
                             self.traffic_bridge.close_edge(se)
-                    # reroute rovers currently on that edge
-                    for r in self.world.robots.values():
-                        if isinstance(r, Rover) and hz.edge_id in r.route_edge_ids:
-                            r.replan(blocked_edge_ids=self.get_blocked_edges(r))
-
                 elif hz.status in ("rejected", "cleared"):
                     self.unblock_edge(hz.edge_id)
-                    # reopen SUMO lanes
-                    for se in self.edge_to_sumo_edges.get(hz.edge_id, []):
-                        if self.traffic_bridge:
+                    if self.traffic_bridge:
+                        for se in self.edge_to_sumo_edges.get(hz.edge_id, []):
                             self.traffic_bridge.reopen_edge(se)
 
     # ------------------------------------------------------------------ step loop
@@ -914,6 +1098,7 @@ class Engine:
 
         # 6. Checkpoint triggers
         self._check_cp_h1()
+        self._dispatch_verifications()
         self._check_cp_v()
         self._check_cp_h2()
 
@@ -931,7 +1116,7 @@ class Engine:
                 sim_time=round(self.sim_time, 2),
                 robots=[r.state() for r in self.world.robots.values()],
                 actors=self.last_actors,
-                hazards=self.chain.hazards(),
+                hazards=self.run_hazards(),
                 props=list(self.props.values()),
                 brain_online=self.brain.online(),
             )
@@ -962,7 +1147,7 @@ class Engine:
             "brain_online": self.brain.online(),
             "operators": [op["name"] for op in self.cfg.get("operators", [])],
             "order_stats": self.order_book.stats(),
-            "hazards": [h.model_dump(mode="json") for h in self.chain.hazards()],
+            "hazards": [h.model_dump(mode="json") for h in self.run_hazards()],
             "props_count": len(self.props),
         }
 

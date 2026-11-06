@@ -1,9 +1,9 @@
 {
   "chainId": 16602,
   "HazardRegistry": {
-    "address": "0x14cF5978992401F3883794c29c93e439EAeE4126",
-    "tx": "0x124096a9f21d2970356976b7c82f4507fad525e2dee4baaddac1383683ae7663",
-    "block": 64092898
+    "address": "0x2098b78B804a9506f7A9074FBd35C76906421Ba0",
+    "tx": "0xf8f0b22fd4fe93559510b2a583c3fd686a10fcfd524fab0bc84f4264c9f2b3c7",
+    "block": 64099311
   },
   "abi_path": "chain/abi/HazardRegistry.json",
   "deployer": "0x359f563EE42A093AF6465dd8c2D24D4f88e6ebdb",
@@ -13,9 +13,9 @@
     "DashKirana": "0x9beD4D26B8Bb6D054DA761c2B7d8e876c7253293"
   },
   "operator_txs": {
-    "ZipKart": "0x90f065894932d33084443a7e2cd75dd73709b3aa626de2350e7f46eb7ae2b2b5",
-    "MinuteMart": "0x6dfecf3ea4d39e80e5fba65f07cd9a4f88882ddaeb6bcb57ffa17d7d4840f1b7",
-    "DashKirana": "0x25f8c173eed1346943ac6f67bab3559116518ca32b2da2c7cc667f33075a9301"
+    "ZipKart": "0xf3274a6b42db157b61ca382a69719d2a741b9c97fada524f125e7714da5c7a6b",
+    "MinuteMart": "0x22080f90c13e4c2967de34e836bf67b6762b564748b9f6ea3b11d0eb84f4e3e7",
+    "DashKirana": "0xa78e15135d2e11fb0dff71f35ac83d443ff976926c14b824674480dce81d49e8"
   },
   "config": {
     "minStake": 100000000000000,

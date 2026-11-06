@@ -41,6 +41,9 @@ ACTOR_COLORS: dict[str, Color] = {
 ACTOR_GROUP, ACTOR_MASK = 0x40, 0x0
 STATIC_GROUP = 0x2
 NOT_ACTORS = 0xFFFF & ~ACTOR_GROUP
+# static world (ground, buildings, props) never collides with itself: without this Bullet keeps
+# a broadphase pair between the infinite ground plane and every building box (~4 ms per step).
+STATIC_MASK = NOT_ACTORS & ~STATIC_GROUP
 
 
 def hex_to_rgba(h: str, a: float = 1.0) -> Color:
@@ -73,7 +76,7 @@ class BodyWorld:
                                         visualFramePosition=[0, 0, -0.011], physicsClientId=c)
         self.ground = p.createMultiBody(0, plane_col, plane_vis, [0, 0, 0], physicsClientId=c)
         p.changeDynamics(self.ground, -1, lateralFriction=1.0, physicsClientId=c)
-        p.setCollisionFilterGroupMask(self.ground, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
+        p.setCollisionFilterGroupMask(self.ground, -1, STATIC_GROUP, STATIC_MASK, physicsClientId=c)
 
         self.static_ids: dict[str, int] = {}
         self.robots: dict[str, "RobotBase"] = {}
@@ -99,23 +102,35 @@ class BodyWorld:
         if not isinstance(boxes, list):
             boxes = json.loads(Path(boxes).read_text())
         c = self.client
-        for b in boxes:
-            he = [float(v) for v in b["half_extents"]]
-            col = p.createCollisionShape(p.GEOM_BOX, halfExtents=he, physicsClientId=c)
-            shade = 0.62 + 0.25 * ((hash(b["id"]) % 100) / 100.0)
-            vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he,
-                                      rgbaColor=[shade, shade * 0.95, shade * 0.88, 1],
-                                      physicsClientId=c)
-            bid = p.createMultiBody(0, col, vis, [float(v) for v in b["center"]],
-                                    _quat_yaw(float(b.get("yaw", 0.0))), physicsClientId=c)
-            p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
-            self.static_ids[b["id"]] = bid
+        # 16 boxes per compound body (createCollisionShapeArray/VisualShapeArray size limit):
+        # PyBullet pays a per-body cost every step, ~1.2 us per body (2k bodies = ~2.5 ms/step).
+        K = 16
+        for i in range(0, len(boxes), K):
+            ch = boxes[i:i + K]
+            he = [[float(v) for v in b["half_extents"]] for b in ch]
+            pos = [[float(v) for v in b["center"]] for b in ch]
+            orn = [list(_quat_yaw(float(b.get("yaw", 0.0)))) for b in ch]
+            rgba = []
+            for b in ch:
+                shade = 0.62 + 0.25 * ((hash(b["id"]) % 100) / 100.0)
+                rgba.append([shade, shade * 0.95, shade * 0.88, 1])
+            col = p.createCollisionShapeArray([p.GEOM_BOX] * len(ch), halfExtents=he,
+                                              collisionFramePositions=pos,
+                                              collisionFrameOrientations=orn, physicsClientId=c)
+            vis = p.createVisualShapeArray([p.GEOM_BOX] * len(ch), halfExtents=he,
+                                           visualFramePositions=pos, visualFrameOrientations=orn,
+                                           rgbaColors=rgba, physicsClientId=c)
+            bid = p.createMultiBody(0, col, vis, [0, 0, 0], physicsClientId=c)
+            p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, STATIC_MASK, physicsClientId=c)
+            for b in ch:
+                self.static_ids[b["id"]] = bid
         return len(boxes)
 
     def _draw_roads(self, g: dict) -> None:
-        """Visual-only dark strips for drive edges (one multi-shape body per edge)."""
+        """Visual-only dark strips for drive edges (multi-shape bodies, 16 segments each)."""
         lane_w = self.planner.lane_width if self.planner else 3.2
         c = self.client
+        he, pos, orn = [], [], []
         for e in g["edges"]:
             if e.get("kind", "drive") != "drive":
                 continue
@@ -123,7 +138,6 @@ class BodyWorld:
             if len(sh) < 2:
                 continue
             w = max(1, int(e.get("lanes") or 1)) * lane_w
-            he, pos, orn = [], [], []
             for a, b in zip(sh[:-1], sh[1:]):
                 L = float(np.linalg.norm(b - a))
                 if L < 0.05:
@@ -132,14 +146,14 @@ class BodyWorld:
                 he.append([L / 2 + w / 4, w / 2, 0.004])
                 pos.append([float(m[0]), float(m[1]), 0.0])
                 orn.append(_quat_yaw(math.atan2(b[1] - a[1], b[0] - a[0])))
-            if not he:
-                continue
-            for i in range(0, len(he), 16):    # createVisualShapeArray is limited in size
-                vis = p.createVisualShapeArray(
-                    shapeTypes=[p.GEOM_BOX] * len(he[i:i + 16]), halfExtents=he[i:i + 16],
-                    visualFramePositions=pos[i:i + 16], visualFrameOrientations=orn[i:i + 16],
-                    rgbaColors=[[0.22, 0.22, 0.24, 1]] * len(he[i:i + 16]), physicsClientId=c)
-                p.createMultiBody(0, -1, vis, [0, 0, 0.003], physicsClientId=c)
+        # 16 segments per body across edges (createVisualShapeArray is limited in size; fewer
+        # bodies = cheaper stepSimulation)
+        for i in range(0, len(he), 16):
+            vis = p.createVisualShapeArray(
+                shapeTypes=[p.GEOM_BOX] * len(he[i:i + 16]), halfExtents=he[i:i + 16],
+                visualFramePositions=pos[i:i + 16], visualFrameOrientations=orn[i:i + 16],
+                rgbaColors=[[0.22, 0.22, 0.24, 1]] * len(he[i:i + 16]), physicsClientId=c)
+            p.createMultiBody(0, -1, vis, [0, 0, 0.003], physicsClientId=c)
 
     # ------------------------------------------------------------------ robots
     def add_rover(self, robot_id: str, operator: str, xy: Sequence[float], yaw: float = 0.0,
@@ -232,7 +246,7 @@ class BodyWorld:
         vis = p.createVisualShape(p.GEOM_BOX, halfExtents=he, rgbaColor=rgba, physicsClientId=c)
         orn = p.getQuaternionFromEuler([roll, 0, yaw])
         bid = p.createMultiBody(0, col, vis, pos, orn, physicsClientId=c)
-        p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
+        p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, STATIC_MASK, physicsClientId=c)
         return bid
 
     def _cyl(self, pos, r, h, rgba) -> int:
@@ -241,7 +255,7 @@ class BodyWorld:
         vis = p.createVisualShape(p.GEOM_CYLINDER, radius=r, length=h, rgbaColor=rgba,
                                   physicsClientId=c)
         bid = p.createMultiBody(0, col, vis, pos, physicsClientId=c)
-        p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, NOT_ACTORS, physicsClientId=c)
+        p.setCollisionFilterGroupMask(bid, -1, STATIC_GROUP, STATIC_MASK, physicsClientId=c)
         return bid
 
     # ------------------------------------------------------------------ kinematic actors

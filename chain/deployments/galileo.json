@@ -1,0 +1,34 @@
+{
+  "chainId": 16602,
+  "HazardRegistry": {
+    "address": "0x14cF5978992401F3883794c29c93e439EAeE4126",
+    "tx": "0x124096a9f21d2970356976b7c82f4507fad525e2dee4baaddac1383683ae7663",
+    "block": 64092898
+  },
+  "abi_path": "chain/abi/HazardRegistry.json",
+  "deployer": "0x359f563EE42A093AF6465dd8c2D24D4f88e6ebdb",
+  "operators": {
+    "ZipKart": "0xb347c4A3aA66E72746fcC7CB925EDe90c681dcd9",
+    "MinuteMart": "0x57e5eF031777777e3122362243Af113c0cCBDEC4",
+    "DashKirana": "0x9beD4D26B8Bb6D054DA761c2B7d8e876c7253293"
+  },
+  "operator_txs": {
+    "ZipKart": "0x90f065894932d33084443a7e2cd75dd73709b3aa626de2350e7f46eb7ae2b2b5",
+    "MinuteMart": "0x6dfecf3ea4d39e80e5fba65f07cd9a4f88882ddaeb6bcb57ffa17d7d4840f1b7",
+    "DashKirana": "0x25f8c173eed1346943ac6f67bab3559116518ca32b2da2c7cc667f33075a9301"
+  },
+  "config": {
+    "minStake": 100000000000000,
+    "confirmsNeeded": 1,
+    "disputesNeeded": 1,
+    "rewardPerConfirm": 10000000000000
+  },
+  "gas_used": {
+    "deploy": 2109442,
+    "registerOperator:ZipKart": 105938,
+    "registerOperator:MinuteMart": 88604,
+    "registerOperator:DashKirana": 88604
+  },
+  "network": "galileo",
+  "rpc": "https://evmrpc-testnet.0g.ai"
+}

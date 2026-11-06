@@ -171,6 +171,7 @@ class DecisionEvent(BaseModel):
     sim_time: float
     action_taken: str
     frame_thumb_b64: Optional[str] = None      # small jpeg for the card
+    frame_full_b64: Optional[str] = None       # full-size jpeg of the image sent to 0G (detail view; optional)
     storage_root: Optional[str] = None         # filled later via topic=storage
     chain_tx: Optional[str] = None
 

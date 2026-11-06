@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+from collections import deque
 from pathlib import Path
 from typing import Any, Callable
 
@@ -20,12 +21,16 @@ class Bus:
         self._async_subs: list[tuple[asyncio.AbstractEventLoop, asyncio.Queue, set[str] | None]] = []
         self._sync_subs: list[tuple[Callable[[Envelope], None], set[str] | None]] = []
         self.last: dict[str, Envelope] = {}          # latest message per topic (for late joiners)
+        # Event history (everything except high-rate `state`) so a late-joining viewer sees the whole story.
+        self.history: deque[Envelope] = deque(maxlen=5000)
 
     def publish(self, topic: Topic, t: float, data: BaseModel | dict[str, Any]) -> Envelope:
         payload = data.model_dump(mode="json") if isinstance(data, BaseModel) else data
         env = Envelope(topic=topic, t=t, data=payload)
         with self._lock:
             self.last[topic] = env
+            if topic != "state":
+                self.history.append(env)
             asubs = list(self._async_subs)
             ssubs = list(self._sync_subs)
         for fn, topics in ssubs:
@@ -41,6 +46,17 @@ class Bus:
                 except RuntimeError:
                     pass  # loop closed
         return env
+
+    def subscribe_with_history(self, maxsize: int = 8192) -> tuple[list[Envelope], asyncio.Queue]:
+        """Atomically: snapshot (all past events in order, then the latest state) + live subscription,
+        so a late joiner neither misses nor duplicates an event."""
+        q: asyncio.Queue = asyncio.Queue(maxsize=maxsize)
+        with self._lock:
+            snap = list(self.history)
+            if "state" in self.last:
+                snap.append(self.last["state"])
+            self._async_subs.append((asyncio.get_running_loop(), q, None))
+        return snap, q
 
     def subscribe_sync(self, fn: Callable[[Envelope], None], topics: set[str] | None = None) -> None:
         with self._lock:

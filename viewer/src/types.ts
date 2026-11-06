@@ -45,7 +45,7 @@ export interface StateSnapshot { sim_time: number; robots: RobotState[]; actors:
 
 export interface DecisionEvent {
   result: CheckpointResult; operator: string; sim_time: number; action_taken: string;
-  frame_thumb_b64: string | null; storage_root: string | null; chain_tx: string | null;
+  frame_thumb_b64: string | null; frame_full_b64?: string | null; storage_root: string | null; chain_tx: string | null;
 }
 
 export interface ChainTxEvent {

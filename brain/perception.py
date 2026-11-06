@@ -42,6 +42,7 @@ class Observation:
     photo: Optional[str]    # photo file used (None = sim render only)
     width: int
     height: int
+    frame_jpeg_b64: str = ""  # full-size JPEG re-encode of the same image, for the viewer detail view only
 
 
 @functools.lru_cache(maxsize=1)
@@ -128,7 +129,10 @@ def encode(img: Image.Image) -> Observation:
     th = img.copy()
     th.thumbnail((THUMB_W, THUMB_H))
     th.save(tb, format="JPEG", quality=70)
-    return Observation(png_b64=base64.b64encode(png).decode("ascii"),
+    fb = io.BytesIO()
+    img.convert("RGB").save(fb, format="JPEG", quality=82)
+    return Observation(frame_jpeg_b64=base64.b64encode(fb.getvalue()).decode("ascii"),
+                       png_b64=base64.b64encode(png).decode("ascii"),
                        thumb_jpeg_b64=base64.b64encode(tb.getvalue()).decode("ascii"),
                        sha256=hashlib.sha256(png).hexdigest(), photo=None,
                        width=img.width, height=img.height)

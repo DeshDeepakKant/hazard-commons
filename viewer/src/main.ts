@@ -12,6 +12,7 @@ import { Robots } from "./scene/robots";
 import { Hazards } from "./scene/hazards";
 import { Pois } from "./scene/pois";
 import { DecisionPanel } from "./ui/panel";
+import { openDecisionDetail } from "./ui/detail";
 import { Topbar } from "./ui/topbar";
 import { Dashboards } from "./ui/dashboards";
 import { OrderPage } from "./ui/order";
@@ -131,7 +132,7 @@ async function boot(): Promise<void> {
     onFollow: (id) => view.setMode("follow", id),
   });
   const panel = new DecisionPanel(app.querySelector(".right-host")!);
-  panel.onCardClick = (c) => view.setMode("follow", c.ev.result.robot_id);
+  panel.onCardClick = (c) => { view.setMode("follow", c.ev.result.robot_id); openDecisionDetail(c); };
   hazards.onClick = (h) => { const p = hazards.position(h.id); if (p) { view.setMode("orbit"); view.flyTo(p, 180); } };
   robots.onClick = (id) => view.setMode("follow", id);
   view.onPick = (hit) => {

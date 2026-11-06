@@ -78,10 +78,10 @@ def brain_unreachable(t: ToggleIn) -> dict[str, Any]:
 @app.websocket("/ws")
 async def ws(websocket: WebSocket) -> None:
     await websocket.accept()
-    q = BUS.subscribe_async()
+    snap, q = BUS.subscribe_with_history()
     try:
-        # late joiner: send latest of each topic first
-        for env in list(BUS.last.values()):
+        # late joiner: full event history first, then the latest state
+        for env in snap:
             await websocket.send_text(json.dumps(env.model_dump(mode="json")))
         while True:
             env = await q.get()

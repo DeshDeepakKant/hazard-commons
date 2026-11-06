@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, Optional
 
@@ -32,6 +33,12 @@ class ZGBrain:
         self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="zg-brain")
         self._lock = threading.Lock()
         self._calls = 0
+        # Circuit breaker: N consecutive transport failures (timeout/5xx/unreachable) pause calls for a
+        # cooldown. The robots SAFE_STOP meanwhile; nothing is guessed. Failed calls do NOT use budget.
+        self.max_consecutive_failures = int(bs.get("max_consecutive_failures", 10))
+        self.breaker_cooldown_s = float(bs.get("breaker_cooldown_s", 20))
+        self._fail_streak = 0
+        self._breaker_until = 0.0
         self._unreachable = False
         self._online = True
         self._on_result = on_result
@@ -52,6 +59,8 @@ class ZGBrain:
         """Demo toggle: point the client at a dead address so calls REALLY fail."""
         with self._lock:
             self._unreachable = on
+            self._breaker_until = 0.0
+            self._fail_streak = 0
             self.router.set_base_url(DEAD_BASE_URL if on else self._real_base_url)
             if on:
                 self._online = False
@@ -85,6 +94,26 @@ class ZGBrain:
             self._calls += 1
             return True
 
+    def _refund_budget(self) -> None:
+        with self._lock:
+            self._calls = max(0, self._calls - 1)
+
+    def _breaker_open(self) -> bool:
+        with self._lock:
+            return time.monotonic() < self._breaker_until
+
+    def _note_transport(self, ok: bool) -> None:
+        with self._lock:
+            if ok:
+                self._fail_streak = 0
+                return
+            self._fail_streak += 1
+            if self._fail_streak >= self.max_consecutive_failures:
+                self._breaker_until = time.monotonic() + self.breaker_cooldown_s
+                self._fail_streak = 0
+                log.warning("0G router: %d consecutive failures, pausing calls for %.0fs",
+                            self.max_consecutive_failures, self.breaker_cooldown_s)
+
     def _safe_decide(self, req: CheckpointRequest) -> CheckpointResult:
         try:
             res = self._decide(req)
@@ -109,6 +138,9 @@ class ZGBrain:
         last: Optional[RouterResponse] = None
         problem = ""
         for attempt in range(1 + self.max_retries_invalid):
+            if self._breaker_open():
+                return self._fail(req, "0G unreachable: circuit breaker open after repeated failures "
+                                       "(SAFE_STOP, nothing guessed)", **_result_fields(last, attempts, total_ms))
             if not self._take_budget():
                 return self._fail(req, f"budget: call budget exceeded ({self.max_calls} calls per run)",
                                   **_result_fields(last, attempts, total_ms))
@@ -117,12 +149,15 @@ class ZGBrain:
             try:
                 last = self.router.chat(messages, client_request_id=attempt_crid)
             except RouterError as e:
+                self._refund_budget()          # a failed call is not a billed model call
+                self._note_transport(False)
                 total_ms += e.latency_ms or 0.0
                 attempts.append({"client_request_id": attempt_crid, "request_id": e.request_id,
                                  "error": str(e)})
                 return self._fail(req, f"0G {e}", latency_ms=round(total_ms, 1),
                                   zg_request_id=e.request_id,
                                   zg_trace={"attempts": attempts} if len(attempts) > 1 or e.request_id else None)
+            self._note_transport(True)
             total_ms += last.latency_ms
             try:
                 output = checkpoints.validate_output(req.checkpoint, last.content)

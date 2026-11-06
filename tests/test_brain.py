@@ -257,3 +257,33 @@ def test_get_brain_requires_real_key(monkeypatch):
         get_brain()
     monkeypatch.setenv("ZG_ROUTER_API_KEY", "sk-real-looking-key-1234567890")
     assert isinstance(get_brain(), ZGBrain)
+
+
+def test_failed_calls_do_not_use_budget_and_breaker_opens(fake):
+    b = make_brain(fake, max_calls=2)
+    b.max_consecutive_failures, b.breaker_cooldown_s = 3, 60
+    fake.status, fake.error_body = 502, '{"error":"bad gateway"}'
+    for i in range(3):
+        assert not run(b, req(seq=i)).ok
+    assert b.calls_used == 0                      # 502s were refunded
+    res = run(b, req(seq=10))
+    assert not res.ok and "circuit breaker" in res.error
+    n = len(fake.requests)
+    run(b, req(seq=11))
+    assert len(fake.requests) == n                # breaker open: no call reaches the router
+    b.set_unreachable(True); b.set_unreachable(False)   # outage toggle resets it
+    fake.status = 200
+    assert run(b, req(seq=12)).ok
+
+
+def test_bus_late_joiner_gets_history_then_state():
+    import asyncio
+    from server.bus import Bus
+    bus = Bus()
+    bus.publish("hazard", 1.0, {"id": 1}); bus.publish("state", 2.0, {"n": 1})
+    bus.publish("decision", 3.0, {"id": 2}); bus.publish("state", 4.0, {"n": 2})
+
+    async def go():
+        snap, q = bus.subscribe_with_history()
+        return [(e.topic, e.t) for e in snap]
+    assert asyncio.run(go()) == [("hazard", 1.0), ("decision", 3.0), ("state", 4.0)]

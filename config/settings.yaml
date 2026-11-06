@@ -49,7 +49,9 @@ brain:
   verify_tee: true
   timeout_s: 15                # exceed => SAFE_STOP
   max_retries_invalid_json: 1  # then SAFE_STOP
-  max_calls_per_run: 100
+  max_calls_per_run: 300       # counts only calls that reached the model (2xx); failed calls are refunded
+  max_consecutive_failures: 10 # circuit breaker: then pause calls for breaker_cooldown_s (robots SAFE_STOP)
+  breaker_cooldown_s: 20
 
 storage:
   indexer_env: ZG_STORAGE_INDEXER

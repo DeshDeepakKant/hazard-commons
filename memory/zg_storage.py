@@ -60,8 +60,13 @@ class ZGStorage:
         self._pool.shutdown(wait=False, cancel_futures=True)
 
     # ------------------------------------------------------------------ internals
+    _no_funds_until = 0.0     # class-level: all uploads share one wallet
+
     def _upload_with_retry(self, path: str) -> dict[str, Any]:
         last: Optional[Exception] = None
+        if time.monotonic() < ZGStorage._no_funds_until:
+            raise StorageError("0G Storage upload skipped: uploader wallet has insufficient funds "
+                               "(top up from faucet.0g.ai; will retry in a few minutes)")
         for attempt in range(1 + self.retries):
             try:
                 t0 = time.perf_counter()
@@ -75,7 +80,12 @@ class ZGStorage:
                 return res
             except Exception as e:
                 last = e
-                log.warning("0G Storage upload attempt %d failed: %s", attempt + 1, e)
+                log.warning("0G Storage upload attempt %d failed: %s", attempt + 1, str(e)[:200])
+                if "insufficient funds" in str(e).lower():
+                    ZGStorage._no_funds_until = time.monotonic() + 300
+                    log.error("0G Storage: wallet out of funds, pausing uploads for 5 min. Fund the "
+                              "uploader wallet at faucet.0g.ai")
+                    break
         raise StorageError(f"0G Storage upload failed after {1 + self.retries} attempts: {last}")
 
     def _run(self, args: list[str], extra_env: dict[str, str]) -> dict[str, Any]:

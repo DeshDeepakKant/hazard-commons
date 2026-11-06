@@ -755,6 +755,7 @@ class Engine:
                 sim_time=self.sim_time,
                 action_taken=action,
                 frame_thumb_b64=obs.thumb_jpeg_b64,
+                frame_full_b64=obs.frame_jpeg_b64 or None,
             ))
 
         rover.begin_checkpoint(self.brain, req, on_ok=on_ok, on_result=on_result, now=self.sim_time)
@@ -911,6 +912,7 @@ class Engine:
                 sim_time=self.sim_time,
                 action_taken=action,
                 frame_thumb_b64=obs.thumb_jpeg_b64,
+                frame_full_b64=obs.frame_jpeg_b64 or None,
             ))
 
         drone.begin_checkpoint(self.brain, req, on_ok=on_ok, on_result=on_result, now=self.sim_time)

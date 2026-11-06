@@ -146,29 +146,41 @@ class BodyWorld:
         +- half width + clearance, sampled every ~1 m) lies inside it."""
         if self.planner is None or not boxes:
             return list(boxes), []
-        pts = []
+        chunks = []
         for e in self.planner.edges.values():
             sh = np.asarray(e["shape"], dtype=float)
             hw = self.planner.half_width(e["id"]) + clearance
+            offs = np.array([-hw, -hw / 2, 0.0, hw / 2, hw])
             for a, b in zip(sh[:-1], sh[1:]):
                 L = float(np.linalg.norm(b - a))
                 if L < 1e-6:
                     continue
                 d = (b - a) / L
                 n = np.array([-d[1], d[0]])
-                for t in np.linspace(0.0, L, max(2, int(L) + 1)):
-                    q = a + d * t
-                    for off in (-hw, -hw / 2, 0.0, hw / 2, hw):
-                        pts.append(q + n * off)
-        P = np.asarray(pts)
+                ts = np.linspace(0.0, L, max(2, int(L) + 1))
+                q = a[None, :] + ts[:, None] * d[None, :]
+                chunks.append((q[:, None, :] + offs[None, :, None] * n[None, None, :]).reshape(-1, 2))
+        if not chunks:
+            return list(boxes), []
+        P = np.concatenate(chunks)
+        CELL = 20.0
+        keys = np.floor(P / CELL).astype(np.int64)
+        grid: dict[tuple[int, int], list[int]] = {}
+        for i, (kx, ky) in enumerate(map(tuple, keys)):
+            grid.setdefault((kx, ky), []).append(i)
+        grid_a = {k: np.asarray(v) for k, v in grid.items()}
         solid, ghost = [], []
         for bx in boxes:
             cx, cy, _ = (float(v) for v in bx["center"])
             hx, hy, _ = (float(v) for v in bx["half_extents"])
             yaw = float(bx.get("yaw", 0.0))
             r = math.hypot(hx, hy)
-            near = P[(np.abs(P[:, 0] - cx) <= r) & (np.abs(P[:, 1] - cy) <= r)]
-            if len(near):
+            idx = [grid_a[(i, j)]
+                   for i in range(int(math.floor((cx - r) / CELL)), int(math.floor((cx + r) / CELL)) + 1)
+                   for j in range(int(math.floor((cy - r) / CELL)), int(math.floor((cy + r) / CELL)) + 1)
+                   if (i, j) in grid_a]
+            if idx:
+                near = P[np.concatenate(idx)]
                 dx, dy = near[:, 0] - cx, near[:, 1] - cy
                 lx = dx * math.cos(yaw) + dy * math.sin(yaw)
                 ly = -dx * math.sin(yaw) + dy * math.cos(yaw)

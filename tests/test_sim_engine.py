@@ -100,8 +100,9 @@ def test_engine_cp_h1_and_reporting(engine: Engine):
     decisions = []
     BUS.subscribe_sync(decisions.append, {"decision"})
 
-    # Step until checkpoint triggers
-    for _ in range(40):
+    # Step until checkpoint triggers (MockBrain answers after ~1 s WALL time; the sim is faster)
+    t_end = time.perf_counter() + 10.0
+    while time.perf_counter() < t_end:
         engine.step(0.05)
         if decisions:
             break
@@ -136,7 +137,8 @@ def test_engine_cp_h2_reroute(engine: Engine):
     decisions = []
     BUS.subscribe_sync(decisions.append, {"decision"})
 
-    for _ in range(60):
+    t_end = time.perf_counter() + 10.0
+    while time.perf_counter() < t_end:
         engine.step(0.05)
         if any(d.data["result"]["checkpoint"] == "CP-H2" for d in decisions):
             break

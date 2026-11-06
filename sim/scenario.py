@@ -303,6 +303,9 @@ class Scenario:
                 if s:
                     spot = s[:3]
                     break
+        if spot is None and A:   # nobody moving (e.g. fast-forwarded test): middle of A
+            sh = self.engine.world.planner.edge_shape(A)
+            spot = (A, float(sh[len(sh) // 2][0]), float(sh[len(sh) // 2][1]))
         if spot is None:
             log.warning("[scenario] no moving rover for the accident; skipped")
             return
@@ -323,9 +326,14 @@ class Scenario:
                 s = self._spot_ahead(r, 30.0, 70.0)
                 if s:
                     cands.append((pref, self._drone_dist(s[1:3], r.operator), r.id, s))
-        if not cands:
-            log.warning("[scenario] no moving rover for waterlogging; skipped")
-            return
+        if not cands:   # nobody moving: a deterministic 1-lane edge away from other hazards
+            used = self._used_edges() | {self.accident_edge}
+            edges = self.engine.world.planner.edges
+            eid = next((e for e in sorted(edges) if e not in used and edges[e]["lanes"] == 1
+                        and edges[e]["length"] > 30), next(iter(sorted(edges))))
+            sh = self.engine.world.planner.edge_shape(eid)
+            cands = [(9, 0.0, None, (eid, float(sh[len(sh) // 2][0]), float(sh[len(sh) // 2][1]), 0.0))]
+            log.warning("[scenario] no moving rover for waterlogging; placed on %s", eid)
         _, _, rid, (edge_id, px, py, ahead) = min(cands)
         self.waterlogging_prop = HazardProp(id="P-scenario-waterlogging", edge_id=edge_id,
                                             type="waterlogging", x=px, y=py, real=True,

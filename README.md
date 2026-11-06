@@ -53,7 +53,7 @@ cp .env.example .env              # add ZG_ROUTER_API_KEY and funded testnet key
 .venv/bin/python scripts/gen_wallets.py   # fresh throwaway testnet keys (prints addresses only)
 (cd memory/zg-storage && npm ci)  # 0G Storage sidecar (official TS SDK)
 (cd chain/foundry && forge install --no-git foundry-rs/forge-std)
-.venv/bin/pytest -q                                   # 79 tests
+.venv/bin/pytest -q tests/test_wallets.py tests/test_brain.py   # targeted; the full suite takes >5 min
 chain/deploy_galileo.sh --env-file .env               # deploy HazardRegistry to Galileo (chain 16602)
 .venv/bin/python -m brain.spike --call                # one real 0G Router call
 scripts/run_demo.sh --traffic                         # live sim server on :8765 (DEMO=1)
@@ -73,6 +73,46 @@ traffic closes the edge. Tick **Fake report** to report a hazard that is not the
 it. The list in the popover clears a disaster. REST: `POST /api/hazards`, `POST /api/hazards/random`,
 `GET /api/hazards/props`, `DELETE /api/hazards/{prop_id}`. The edge is not pre-blocked: closures come only
 from the genuine report/verify flow.
+
+## Agents that pay for themselves (0G track 1.4)
+
+Every body (8 rovers, 2 drones) is its own economic agent with its own credit wallet (`brain/wallets.py`).
+Enable with `scripts/run_demo.sh --wallets` (or `ZG_WALLETS=1`); `ZG_WALLET_START=400` starts every body
+nearly broke so the downgrade is visible within a minute.
+
+```
+ 0G call ──> debit real cost (x_0g_trace.billing.total_cost_usd_micro)
+   ▲                                   │
+   │   tier by balance / start credit  ▼
+   │   normal  ≥40%   default TEE model 0gm-1.0-35b-a3b   (~90–130 µUSD/call)
+   │   economy <40%   cheaper 0G model qwen2.5-vl-72b, NO TEE (~60 µUSD with a photo, ~24 text-only)
+   │   throttled <15% economy model + max one call per 20 s
+   │   paused  < one call   no model call → SAFE_STOP (never a guessed decision)
+   │
+ income, no human in the loop:
+   +600  reporter of a hazard that rivals confirmed on 0G Chain (HazardResolved event)
+   +150  verifier (drone or rival rover) whose CP-V verdict matched the on-chain outcome
+   +300  delivered order (SIMULATED fee, labelled "simulated" in the UI and ledger)
+```
+
+- The robot reads its own balance before each call; the gate runs before the global call budget, and a
+  failed call is refunded. Each decision card shows cost, balance after, tier and route; the **Wallets**
+  button and the fleet **Credit** column show balances, earnings and the ledger. `GET /api/wallets`.
+- Per-robot lifetime spend cap (`max_spend_micro_usd`) so a runaway loop cannot drain the account.
+- Economy cards say **NO TEE** — the robot trades verifiability for price, visibly, never silently.
+
+**What is not real (honest limits).** Wallet balances are per-robot accounts inside the sim, debited with
+the real per-call 0G cost but funded from one shared 0G Router account (USD-billed, $5.99 credit). Earnings
+are credited to the robot's wallet when the on-chain event happens; they do **not** move money into the
+0G Router account. The two paths that would close that loop were not usable this weekend: 0G's mainnet
+self-payment route (comfy) needs a 0G-billed account and mainnet 0G (ours is USD-billed, switching is
+manual); the testnet Router API (`router-api-testnet.integratenetwork.work`) did not complete a TLS
+handshake for the whole event, so a deposit → Payment Layer → balance top-up could not be tested.
+**Proof run** (`scripts/wallet_demo.py`, real 0G Router calls through the production `ZGBrain` +
+wallet code, one body starting at 300 µUSD, real camera frame): 2 calls on `0gm-1.0-35b-a3b` (90, 92 µUSD)
+→ economy → 2 calls on `qwen2.5-vl-72b-instruct` (62, 61 µUSD, still classified the accident) → paused →
+5th checkpoint made **no** model call and returned SAFE_STOP → +600 hazard income → back to normal.
+Request ids: `docs/EVIDENCE.md` § Agents that pay for themselves; raw output `docs/wallet_demo.json`.
 
 ## 0G evidence
 Verified on 2026-11-06: a real Router call to `0gm-1.0-35b-a3b` with a composited accident photo returned a valid verdict in ~7 s.

@@ -73,6 +73,36 @@ Explorer: https://storagescan-galileo.0g.ai . Download: `node memory/zg-storage/
 ## Replay
 The hosted replay is this exact run (state frames thinned 4:1): https://hazard-commons.vercel.app/ . Raw stream: `viewer/public/runs/demo.jsonl`.
 
+## Agents that pay for themselves (2026-11-07)
+
+**Proof run** — `ZG_WALLETS=1 .venv/bin/python scripts/wallet_demo.py --start 300 --out docs/wallet_demo.json`.
+One body (R-04), 300 µUSD starting credit, real camera frame from this run, real 0G Router calls through the
+production `ZGBrain` + `RobotWalletRegistry` code. Cost per call is the Router's own
+`x_0g_trace.billing.total_cost_usd_micro`.
+
+| # | tier before | model (route) | cost µUSD | balance after | 0G request id |
+|---|---|---|---|---|---|
+| 1 | normal | `0gm-1.0-35b-a3b` (default, TEE) | 90 | 210 | `5ec93488-b4ef-4b18-8762-8b1566abdd38` |
+| 2 | normal | `0gm-1.0-35b-a3b` (default, TEE) | 92 | 118 → economy | `9aaeff93-d3c3-4418-a29b-985e2f5cd549` |
+| 3 | economy | `qwen2.5-vl-72b-instruct` (economy, NO TEE) | 62 | 56 | `59ff9bd8-c64c-4714-8994-398957ec0d12` |
+| 4 | economy | `qwen2.5-vl-72b-instruct` (economy, NO TEE) | 61 | 0 → paused | `c57ccfee-460d-4e80-b1ab-7e8d551c32b3` |
+| 5 | paused | — no call made — | 0 | 0 | — (SAFE_STOP: "budget: robot credit exhausted") |
+
+Then +600 µUSD hazard income → tier back to normal. Both economy calls still classified the photo as an accident.
+
+**Live sim** (`ZG_WALLET_START=400 scripts/run_demo.sh --traffic --loop --wallets`, Galileo): R-01 fell to
+economy after three calls (balance 133 of 400), then earned +600 twice from its own hazard reports confirmed by
+rivals on chain — `0xb7c045eed0a77dbef5bfb7cfbc4a14f8fb6c4f6baad929239a2de4fd357d4a96` (hazard #109) and
+`0x18953c5cc9fbf7c0319b4f2e2916ccca83d694a7909a8682e4ba63f0d5a1cf77` (hazard #110) — and returned to normal
+with no human action. R-04 dropped to economy after a bystander-inquiry call (152 µUSD).
+
+**Model costs measured with our key:** `0gm-1.0-35b-a3b` ~90–130 µUSD (photo) / ~65 (text); `qwen2.5-vl-72b-instruct`
+~61 (photo) / 24 (text); `glm-5.3` 302 and an empty answer (reasoning model) — so it is not an economy route.
+
+**Limits:** wallets are per-robot ledgers inside the sim, funded from one USD-billed 0G Router account; earned
+credit does not move money into that account. comfy (mainnet self-payment) needs a 0G-billed account; the testnet
+Router API never completed a TLS handshake during the event, so the on-chain top-up loop was not built.
+
 ## Earlier probes
 - Router spike request id `e3deff71-90f3-4022-858d-f483bbf32fab` (provider `0xf4FB8d2bD856e672b5f9848b0eD235A20079B250`).
 - Storage probe root `0x3526e7fde02914bd22b2735c7b6148911aac1a6b5d016d37d7125fefe5a05791`.

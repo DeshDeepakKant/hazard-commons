@@ -147,3 +147,9 @@ def test_disabled_identical(fake, monkeypatch):
     assert res.ok and "wallet" not in res.zg_trace["_hc"]
     monkeypatch.setenv("ZG_WALLETS", "1")
     assert mk(fake).wallets is not None
+
+
+def test_env_start_override(monkeypatch):
+    from brain.wallets import wallet_settings
+    monkeypatch.setenv("ZG_WALLET_START", "400")
+    assert wallet_settings()["start_micro_usd"] == 400

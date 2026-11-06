@@ -70,10 +70,13 @@ brain:
       CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
     # Used by robot wallets (brain.wallets.economy_profile) for a body whose credit is below the
-    # economy threshold. Explicit trust_mode on every route: text stays TEE (glm-5.3), vision runs on
-    # a cheaper NON-TEE 0G model and its cards say NO TEE. Never silently TEE.
+    # economy threshold. Explicit trust_mode on every route: all checkpoints run on a cheaper NON-TEE
+    # 0G model and its cards say NO TEE. Never silently TEE.
     economy:
-      CP-H2: {model: glm-5.3, trust_mode: private}
+      # measured 2026-11-07: qwen ~60 micro-USD/call with a photo (~24 text) vs ~90-130 on the TEE model; glm-5.3 (reasoning)
+      # cost ~300 and returned no text, so it is not used as an economy route.
+      CP-H2: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
+      CP-Q:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-H1: {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-V:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
       CP-D:  {model: qwen2.5-vl-72b-instruct, trust_mode: standard, verify_tee: false}
@@ -86,7 +89,7 @@ brain:
     max_spend_micro_usd: 6000      # lifetime per-robot spend cap (0 = none)
     economy_fraction: 0.40         # balance/start below -> economy route
     throttled_fraction: 0.15       # below -> throttled (economy route + rate limit)
-    min_call_cost_micro_usd: 90    # balance below this -> paused (SAFE_STOP, no model call)
+    min_call_cost_micro_usd: 40    # balance below this -> paused (SAFE_STOP, no model call); ~economy call cost
     throttle_min_interval_s: 20    # throttled: min wall seconds between calls per robot
     economy_profile: economy
     estimate_in_micro_usd_per_1k: 20    # only if the router reports no billing

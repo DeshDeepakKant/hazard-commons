@@ -1,0 +1,74 @@
+{
+  "start": 300,
+  "calls": [
+    {
+      "seq": 1,
+      "tier_before": "normal",
+      "balance_before": 300,
+      "ok": true,
+      "model": "0gm-1.0-35b-a3b",
+      "route": "default",
+      "cost_micro_usd": 90,
+      "balance_after": 210,
+      "tier_after": "normal",
+      "zg_request_id": "5ec93488-b4ef-4b18-8762-8b1566abdd38",
+      "result": "accident"
+    },
+    {
+      "seq": 2,
+      "tier_before": "normal",
+      "balance_before": 210,
+      "ok": true,
+      "model": "0gm-1.0-35b-a3b",
+      "route": "default",
+      "cost_micro_usd": 92,
+      "balance_after": 118,
+      "tier_after": "economy",
+      "zg_request_id": "9aaeff93-d3c3-4418-a29b-985e2f5cd549",
+      "result": "accident"
+    },
+    {
+      "seq": 3,
+      "tier_before": "economy",
+      "balance_before": 118,
+      "ok": true,
+      "model": "qwen2.5-vl-72b-instruct",
+      "route": "economy",
+      "cost_micro_usd": 62,
+      "balance_after": 56,
+      "tier_after": "economy",
+      "zg_request_id": "59ff9bd8-c64c-4714-8994-398957ec0d12",
+      "result": "accident"
+    },
+    {
+      "seq": 4,
+      "tier_before": "economy",
+      "balance_before": 56,
+      "ok": true,
+      "model": "qwen2.5-vl-72b-instruct",
+      "route": "economy",
+      "cost_micro_usd": 61,
+      "balance_after": 0,
+      "tier_after": "paused",
+      "zg_request_id": "c57ccfee-460d-4e80-b1ab-7e8d551c32b3",
+      "result": "accident"
+    },
+    {
+      "seq": 5,
+      "tier_before": "paused",
+      "balance_before": 0,
+      "ok": false,
+      "model": "0gm-1.0-35b-a3b",
+      "route": null,
+      "cost_micro_usd": null,
+      "balance_after": 0,
+      "tier_after": "paused",
+      "zg_request_id": null,
+      "result": "SAFE_STOP: budget: robot credit exhausted (tier paused)"
+    }
+  ],
+  "after_income": {
+    "balance": 600,
+    "tier": "normal"
+  }
+}

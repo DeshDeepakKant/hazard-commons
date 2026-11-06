@@ -56,6 +56,9 @@ def wallet_settings() -> dict[str, Any]:
             cfg["income"] = {**DEFAULTS["income"], **(v or {})}
         else:
             cfg[k] = v
+    env_start = os.environ.get("ZG_WALLET_START", "").strip()
+    if env_start:   # demo knob: start every body nearly broke to show the tier switch
+        cfg["start_micro_usd"] = int(env_start)
     return cfg
 
 

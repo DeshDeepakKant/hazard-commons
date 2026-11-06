@@ -106,7 +106,14 @@ async function boot(): Promise<void> {
   const actors = new Actors();
   const robots = new Robots(world);
   const hazards = new Hazards(world);
-  view.scene.add(pois.group, actors.group, robots.group, robots.routeGroup, hazards.group, hazards.propGroup);
+  view.scene.add(pois.group, actors.group, robots.group, robots.routeGroup, hazards.group, hazards.propGroup, robots.pads.group);
+  robots.camera = view.camera;
+  robots.hazardForEdge = (edge) => {
+    let best: Hazard | null = null;
+    for (const h of store.hazards.values()) if (h.edge_id === edge && (!best || Number(h.id) > Number(best.id))) best = h;
+    return best?.id ?? null;
+  };
+  if (replay) robots.pads.seed(replay.buffer.snaps);
   if (pois.homesMesh) view.pickables.push(pois.homesMesh);
   view.getRobotPos = (id) => robots.position(id);
 
@@ -120,6 +127,14 @@ async function boot(): Promise<void> {
     onOrder: () => orderPage.toggle(),
   });
   if (satReady !== null) topbar.setSatelliteAvailable(satReady);
+  // drones: "Drones" button / D key cycles the camera through them
+  const cycleDrones = () => {
+    const ids = robots.droneIds();
+    if (!ids.length) { toast("No drones in the scene yet"); return; }
+    const cur = view.mode === "follow" && view.followId ? ids.indexOf(view.followId) : -1;
+    view.setMode("follow", ids[(cur + 1) % ids.length]);
+  };
+  topbar.addDronesButton(cycleDrones);
   const leftHost = app.querySelector<HTMLElement>(".left-host")!;
   const dash = new Dashboards(leftHost);
   dash.onRobot = (id) => view.setMode("follow", id);
@@ -231,6 +246,7 @@ async function boot(): Promise<void> {
     if (e.key === "c") view.setMode(view.mode === "cinematic" ? "orbit" : "cinematic");
     if (e.key === "r") view.resetView();
     if (e.key === "o") orderPage.toggle();
+    if (e.key === "d" && (e.target as HTMLElement)?.tagName !== "SELECT" && !e.ctrlKey && !e.metaKey && !e.altKey) cycleDrones();
     if (e.key === "Escape") { orderPage.toggle(false); view.setMode("orbit"); }
   });
 
@@ -259,7 +275,7 @@ async function boot(): Promise<void> {
       dash.update();
       orderPage.tick();
       const rs = store.latest?.robots ?? [];
-      topbar.setRobots(rs.map((r) => ({ id: r.id, operator: r.operator })).sort((a, b) => a.id.localeCompare(b.id)));
+      topbar.setRobots(rs.map((r) => ({ id: r.id, operator: r.operator, kind: r.kind })).sort((a, b) => a.id.localeCompare(b.id)));
       if (activeHomesDirty) {
         activeHomesDirty = false;
         pois.setActive(Array.from(store.orders.values()).filter((o) => o.status !== "delivered" && o.status !== "failed").map((o) => o.customer_building_id));

@@ -42,6 +42,21 @@ export function summarize(c: Card): { verdict: string; tone: string; detail: str
   return { verdict: JSON.stringify(o), tone: "", detail: "" };
 }
 
+const DEFAULT_MODEL = "0gm-1.0-35b-a3b";
+
+function trustMode(r: { zg_trace: Record<string, unknown> | null }): string | null {
+  const hc = (r.zg_trace?._hc ?? null) as Record<string, unknown> | null;
+  return typeof hc?.trust_mode === "string" ? hc.trust_mode : null;
+}
+
+function modelBadge(r: { model: string | null; zg_trace: Record<string, unknown> | null }): string {
+  const tm = trustMode(r);
+  const noTee = tm !== null && tm !== "private";
+  const other = r.model && !r.model.startsWith(DEFAULT_MODEL);
+  return `${other ? `<span class="badge model" title="0G model used for this checkpoint">${esc(r.model)}</span>` : ""}${
+    noTee ? `<span class="badge tee bad" title="0G Compute, but a non-TEE provider (trust mode ${esc(tm)})">NO TEE</span>` : ""}`;
+}
+
 function teeBadge(v: boolean | null): string {
   if (v === true) return `<span class="badge tee ok" title="0G TEE attestation verified">✓ TEE</span>`;
   if (v === false) return `<span class="badge tee bad" title="TEE verification failed">✗ TEE</span>`;
@@ -73,7 +88,7 @@ function render(c: Card, node: HTMLElement): void {
       <span class="t">t ${fmtClock(ev.sim_time)}</span>
       ${r.mock ? `<span class="badge mock" title="Dev-only mock brain: this is NOT a 0G decision">MOCK – NOT 0G</span>` : ""}
     </div>
-    <div class="cp-row"><span class="cp-id">${esc(r.checkpoint)}</span><span class="cp-label">${esc(CHECKPOINT_LABEL[r.checkpoint] ?? "")}</span>${r.ok ? teeBadge(r.tee_verified) : ""}</div>
+    <div class="cp-row"><span class="cp-id">${esc(r.checkpoint)}</span><span class="cp-label">${esc(CHECKPOINT_LABEL[r.checkpoint] ?? "")}</span>${r.ok ? modelBadge(r) + (trustMode(r) && trustMode(r) !== "private" ? "" : teeBadge(r.tee_verified)) : ""}</div>
     <div class="card-body">
       ${thumb}
       <div class="verdict-col">

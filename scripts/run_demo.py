@@ -39,7 +39,12 @@ def main() -> int:
                     help="Loop period in sim seconds, from each cycle start (default 360)")
     ap.add_argument("--loop-max-cycles", type=int, default=None,
                     help="Stop looping after this many cycles in total (cost guard, default 5)")
+    ap.add_argument("--brain-profile", default=None,
+                    help="Per-checkpoint 0G model routes from settings brain.profiles "
+                         "(e.g. tee-text, outage). Default: every checkpoint on the TEE vision model")
     args = ap.parse_args()
+    if args.brain_profile:
+        os.environ["ZG_BRAIN_PROFILE"] = args.brain_profile
 
     loop_cfg = (settings().get("sim", {}) or {}).get("scenario_loop", {}) or {}
     loop_on = bool(loop_cfg.get("enabled", False)) if args.loop is None else args.loop
@@ -53,6 +58,7 @@ def main() -> int:
     print(f"  Server: http://{args.host}:{args.port}")
     print(f"  Viewer: http://localhost:5173")
     print(f"  DEMO mode: {'ON (DEMO=1)' if os.environ.get('DEMO') == '1' else 'OFF'}")
+    print(f"  Brain profile: {os.environ.get('ZG_BRAIN_PROFILE') or 'default (all checkpoints: TEE vision model)'}")
     if loop_on:
         print(f"  Scenario loop: every {loop_every:.0f} s sim time, max {loop_max} cycles "
               f"(each cycle: ~3 stakes of 0.0001 0G + gas, ~15-25 0G Router calls)")

@@ -287,3 +287,25 @@ def test_bus_late_joiner_gets_history_then_state():
         snap, q = bus.subscribe_with_history()
         return [(e.topic, e.t) for e in snap]
     assert asyncio.run(go()) == [("hazard", 1.0), ("decision", 3.0), ("state", 4.0)]
+
+
+def test_per_checkpoint_routes_use_their_own_model(fake):
+    b = make_brain(fake)
+    alt = ZGRouter(base_url=fake.base_url, api_key="sk-test-0123456789abcdef", model="glm-5.3",
+                   timeout_s=3.0, trust_mode="private")
+    b.set_routes({"CP-H2": alt})
+    fake.replies = [json.dumps({"action": "reroute", "reason": "r", "trust_report": True}), json.dumps(GOOD_H1)]
+    assert run(b, req(cp="CP-H2", seq=1)).ok
+    assert fake.requests[-1]["body"]["model"] == "glm-5.3"
+    assert run(b, req(cp="CP-H1", seq=2)).ok
+    assert fake.requests[-1]["body"]["model"] == "0gm-1.0-35b-a3b"
+    b.set_unreachable(True)
+    assert not run(b, req(cp="CP-H2", seq=3)).ok          # outage toggle reaches routed checkpoints too
+
+
+def test_profile_without_key_env_is_skipped(monkeypatch):
+    from brain.client import build_profile_routes
+    monkeypatch.delenv("ZG_ROUTER_API_KEY_STANDARD", raising=False)
+    monkeypatch.setenv("ZG_ROUTER_API_KEY", "sk-test-0123456789abcdef")
+    routes, notes = build_profile_routes("outage")
+    assert set(routes) == {"CP-H2"} and any("skipped" in n for n in notes)

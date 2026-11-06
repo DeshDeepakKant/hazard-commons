@@ -398,3 +398,4 @@ footer .powered { color: #7c8aa3; }
 .vf-lightbox figure { margin: 0; max-width: 100%; }
 .vf-lightbox img { max-width: min(1200px, 94vw); max-height: 84vh; border-radius: 10px; border: 1px solid var(--line); display: block; }
 .vf-lightbox figcaption { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
+.badge.model { background: #1e1b4b; color: #c4b5fd; border: 1px solid #4338ca; font-family: var(--mono); font-weight: 600; }

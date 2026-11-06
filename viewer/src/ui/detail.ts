@@ -56,7 +56,9 @@ export function openDecisionDetail(c: Card): void {
           ${row("Action taken", esc(ev.action_taken || "–"))}
           ${row("Latency", r.latency_ms != null ? `${(r.latency_ms / 1000).toFixed(2)} s` : "–")}
           ${row("Model", esc(r.model ?? "–"))}
-          ${row("TEE", r.tee_verified === true ? "verified" : r.tee_verified === false ? "FAILED" : "not reported (sealed request)")}
+          ${row("TEE", (() => { const tm = ((r.zg_trace?._hc ?? {}) as Record<string, unknown>).trust_mode;
+            if (typeof tm === "string" && tm !== "private") return `NO TEE: non-TEE 0G provider (trust mode ${esc(tm)})`;
+            return r.tee_verified === true ? "verified" : r.tee_verified === false ? "FAILED" : "TEE provider; not reported (sealed request)"; })())}
           ${row("0G request id", r.zg_request_id ? code(r.zg_request_id) : `<span class="muted">none: no 0G answer</span>`)}
           ${row("Client request id", r.client_request_id ? code(r.client_request_id) : "–")}
           ${trace.provider ? row("Provider", code(String(trace.provider))) : ""}

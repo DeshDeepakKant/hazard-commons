@@ -7,6 +7,7 @@ ONE corrective retry, call budget exceeded, any unexpected exception.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -28,6 +29,9 @@ class ZGBrain:
         bs = brain_settings()
         self.router = router or ZGRouter()
         self._real_base_url = self.router.base_url
+        # Optional per-checkpoint routes (brain profile). Explicitly chosen for a whole run and shown
+        # on every card; never an automatic fallback. Checkpoints without a route use self.router.
+        self.routes: dict[str, ZGRouter] = {}
         self.max_calls = int(max_calls if max_calls is not None else bs.get("max_calls_per_run", 100))
         self.max_retries_invalid = int(bs.get("max_retries_invalid_json", 1))
         self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="zg-brain")
@@ -37,8 +41,8 @@ class ZGBrain:
         # cooldown. The robots SAFE_STOP meanwhile; nothing is guessed. Failed calls do NOT use budget.
         self.max_consecutive_failures = int(bs.get("max_consecutive_failures", 10))
         self.breaker_cooldown_s = float(bs.get("breaker_cooldown_s", 20))
-        self._fail_streak = 0
-        self._breaker_until = 0.0
+        self._fail_streak: dict[str, int] = {}       # per model: a dead provider must not block another
+        self._breaker_until: dict[str, float] = {}
         self._unreachable = False
         self._online = True
         self._on_result = on_result
@@ -55,13 +59,21 @@ class ZGBrain:
     def online(self) -> bool:
         return self._online and not self._unreachable
 
+    def set_routes(self, routes: dict[str, ZGRouter]) -> None:
+        self.routes = dict(routes)
+
+    def router_for(self, checkpoint: str) -> ZGRouter:
+        return self.routes.get(checkpoint, self.router)
+
     def set_unreachable(self, on: bool) -> None:
         """Demo toggle: point the client at a dead address so calls REALLY fail."""
         with self._lock:
             self._unreachable = on
-            self._breaker_until = 0.0
-            self._fail_streak = 0
+            self._breaker_until.clear()
+            self._fail_streak.clear()
             self.router.set_base_url(DEAD_BASE_URL if on else self._real_base_url)
+            for r in self.routes.values():
+                r.set_base_url(DEAD_BASE_URL if on else self._real_base_url)
             if on:
                 self._online = False
         log.warning("0G router %s", "UNREACHABLE (dead endpoint)" if on else "restored")
@@ -83,7 +95,7 @@ class ZGBrain:
 
     # ------------------------------------------------------------------ internals
     def _fail(self, req: CheckpointRequest, error: str, **kw: Any) -> CheckpointResult:
-        kw.setdefault("model", self.router.model)
+        kw.setdefault("model", self.router_for(req.checkpoint).model)
         return CheckpointResult(ok=False, checkpoint=req.checkpoint, robot_id=req.robot_id,
                                 client_request_id=f"{req.episode_id}:{req.seq}", error=error, **kw)
 
@@ -98,21 +110,21 @@ class ZGBrain:
         with self._lock:
             self._calls = max(0, self._calls - 1)
 
-    def _breaker_open(self) -> bool:
+    def _breaker_open(self, model: str) -> bool:
         with self._lock:
-            return time.monotonic() < self._breaker_until
+            return time.monotonic() < self._breaker_until.get(model, 0.0)
 
-    def _note_transport(self, ok: bool) -> None:
+    def _note_transport(self, model: str, ok: bool) -> None:
         with self._lock:
             if ok:
-                self._fail_streak = 0
+                self._fail_streak[model] = 0
                 return
-            self._fail_streak += 1
-            if self._fail_streak >= self.max_consecutive_failures:
-                self._breaker_until = time.monotonic() + self.breaker_cooldown_s
-                self._fail_streak = 0
-                log.warning("0G router: %d consecutive failures, pausing calls for %.0fs",
-                            self.max_consecutive_failures, self.breaker_cooldown_s)
+            self._fail_streak[model] = self._fail_streak.get(model, 0) + 1
+            if self._fail_streak[model] >= self.max_consecutive_failures:
+                self._breaker_until[model] = time.monotonic() + self.breaker_cooldown_s
+                self._fail_streak[model] = 0
+                log.warning("0G router: %d consecutive failures on %s, pausing its calls for %.0fs",
+                            self.max_consecutive_failures, model, self.breaker_cooldown_s)
 
     def _safe_decide(self, req: CheckpointRequest) -> CheckpointResult:
         try:
@@ -132,13 +144,14 @@ class ZGBrain:
         if req.checkpoint not in checkpoints.PROMPT_FILES:
             return self._fail(req, f"unknown checkpoint {req.checkpoint}")
         crid = f"{req.episode_id}:{req.seq}"
+        model = self.router_for(req.checkpoint).model
         messages = checkpoints.build_messages(req)
         attempts: list[dict[str, Any]] = []
         total_ms = 0.0
         last: Optional[RouterResponse] = None
         problem = ""
         for attempt in range(1 + self.max_retries_invalid):
-            if self._breaker_open():
+            if self._breaker_open(model):
                 return self._fail(req, "0G unreachable: circuit breaker open after repeated failures "
                                        "(SAFE_STOP, nothing guessed)", **_result_fields(last, attempts, total_ms))
             if not self._take_budget():
@@ -147,17 +160,17 @@ class ZGBrain:
             # Each attempt gets its own client id so router logs stay unambiguous.
             attempt_crid = crid if attempt == 0 else f"{crid}:retry{attempt}"
             try:
-                last = self.router.chat(messages, client_request_id=attempt_crid)
+                last = self.router_for(req.checkpoint).chat(messages, client_request_id=attempt_crid)
             except RouterError as e:
                 self._refund_budget()          # a failed call is not a billed model call
-                self._note_transport(False)
+                self._note_transport(model, False)
                 total_ms += e.latency_ms or 0.0
                 attempts.append({"client_request_id": attempt_crid, "request_id": e.request_id,
                                  "error": str(e)})
                 return self._fail(req, f"0G {e}", latency_ms=round(total_ms, 1),
                                   zg_request_id=e.request_id,
                                   zg_trace={"attempts": attempts} if len(attempts) > 1 or e.request_id else None)
-            self._note_transport(True)
+            self._note_transport(model, True)
             total_ms += last.latency_ms
             try:
                 output = checkpoints.validate_output(req.checkpoint, last.content)
@@ -188,6 +201,30 @@ def _result_fields(last: Optional[RouterResponse], attempts: list[dict[str, Any]
             "tee_verified": last.tee_verified, "latency_ms": round(total_ms, 1)}
 
 
+def build_profile_routes(profile: Optional[str]) -> tuple[dict[str, ZGRouter], list[str]]:
+    """brain.profiles.<name> in settings.yaml -> {checkpoint: ZGRouter}. A route whose api_key_env
+    is not set is skipped (that checkpoint stays on the default TEE model). Returns (routes, notes)."""
+    from common.config import env, settings
+    notes: list[str] = []
+    if not profile or profile == "default":
+        return {}, notes
+    profiles = (settings().get("brain", {}) or {}).get("profiles", {}) or {}
+    if profile not in profiles:
+        raise ValueError(f"unknown brain profile {profile!r}; known: {sorted(profiles)}")
+    routes: dict[str, ZGRouter] = {}
+    for cp, spec in (profiles[profile] or {}).items():
+        key_env = spec.get("api_key_env")
+        key = env(key_env) if key_env else None
+        if key_env and not api_key_looks_real(key):
+            notes.append(f"{cp}: {spec['model']} skipped ({key_env} not set) -> stays on default model")
+            continue
+        routes[cp] = ZGRouter(model=spec["model"], api_key=key,
+                              trust_mode=spec.get("trust_mode"), verify_tee=spec.get("verify_tee"))
+        tee = "TEE" if (spec.get("trust_mode") or "private") == "private" else "NO TEE"
+        notes.append(f"{cp}: {spec['model']} ({spec.get('trust_mode') or 'private'}, {tee})")
+    return routes, notes
+
+
 def get_brain(**kw: Any):
     """Factory. MockBrain ONLY when MOCK_BRAIN=1 (and DEMO!=1, else mock_brain_enabled raises).
     Otherwise the real 0G brain; refuses to start without a real router API key."""
@@ -200,4 +237,10 @@ def get_brain(**kw: Any):
             "ZG_ROUTER_API_KEY is missing or a placeholder. Put a real 0G Router key in .env "
             "(or set ENV_FILE to the .env path). There is no fallback brain: without 0G the "
             "robots can only SAFE_STOP. For local physics dev only: MOCK_BRAIN=1 (refused with DEMO=1).")
-    return ZGBrain(**kw)
+    profile = kw.pop("profile", None) or os.environ.get("ZG_BRAIN_PROFILE")
+    brain = ZGBrain(**kw)
+    routes, notes = build_profile_routes(profile)
+    brain.set_routes(routes)
+    for n in notes:
+        log.warning("brain profile %s: %s", profile, n)
+    return brain

@@ -99,6 +99,7 @@ class RouterResponse:
     status: int
     headers: dict[str, str] = field(default_factory=dict)   # 0G-relevant response headers
     usage: Optional[dict[str, Any]] = None
+    trust_mode: Optional[str] = None     # X-0G-Provider-Trust-Mode we sent (private = TEE only)
 
     def full_trace(self) -> dict[str, Any]:
         """Everything we log for audit: router trace + ids + provider/billing + usage."""
@@ -113,6 +114,7 @@ class RouterResponse:
             "usage": self.usage,
             "http_status": self.status,
             "headers": self.headers,
+            "trust_mode": self.trust_mode,
         }
         return out
 
@@ -221,6 +223,7 @@ class ZGRouter:
             status=raw.status_code,
             headers=keep_headers,
             usage=usage,
+            trust_mode=self.trust_mode,
         )
 
     def list_models(self) -> Any:

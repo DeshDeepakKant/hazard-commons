@@ -70,6 +70,8 @@ Verified on 2026-11-06: a real Router call to `0gm-1.0-35b-a3b` with a composite
 
 HazardRegistry on 0G Galileo: [`0x2098b78B804a9506f7A9074FBd35C76906421Ba0`](https://chainscan-galileo.0g.ai/address/0x2098b78B804a9506f7A9074FBd35C76906421Ba0). Live demo (replay of the real run): https://hazard-commons.vercel.app/ . All request ids, transaction hashes and Storage root hashes: `docs/EVIDENCE.md`.
 
+**Verify any episode log yourself, in the browser.** In the viewer, open a decision card and click **Verify on 0G Storage**, or use **✓ Verify log** in the top bar and paste any root hash from `docs/EVIDENCE.md` (or open `?verify=<root>`, e.g. https://hazard-commons.vercel.app/?verify=0x407aae05b1c5373d648d826ba965ac227816f369533b13488bf31a51f69449cd). The page downloads the file straight from the 0G Storage indexer (no backend of ours involved), recomputes every record's `sha256(canonical_json(record))` and `prev_record_sha256` link, checks each camera frame against its `frame_sha256`, and compares each record with the matching decision card (by 0G request id). `cd viewer && node scripts/verify-check.mjs` runs the same code against the local batch files to show it reproduces Python's hashes byte for byte.
+
 ## Disclosures
 - **Perception.** PyBullet renders look like toy scenes, so at hazard checkpoints a real CC-licensed photo of the hazard type is composited with the rendered frame and sent to the vision model. Photo credits: `assets/hazard_photos/ATTRIBUTION.md`.
 - **Simulation only.** No hardware.

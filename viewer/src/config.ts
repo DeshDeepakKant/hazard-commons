@@ -8,6 +8,8 @@
 //   ?top=1                               start with a top-down camera (alignment checks)
 //   ?cam=x,y,dist,azimuthDeg,elevDeg      initial camera (local metres)
 //   ?t=<sim seconds>                     replay: start at this time
+//   ?verify=<0G Storage root hash>       open the "Verify on 0G Storage" dialog for this root
+//   ?indexer=<url>                       0G Storage indexer for downloads (default: Galileo turbo)
 //
 // Env (build time): VITE_WORLD_BASE, VITE_DEFAULT_REPLAY (hosted demo: replay this when no params).
 
@@ -34,7 +36,12 @@ export const CONFIG = {
   cam: q.get("cam")?.split(",").map(Number) ?? null,
   startT: q.has("t") ? Number(q.get("t")) : null,
   explicitWorld: q.has("world"),
+  verifyRoot: q.get("verify"),
+  zgIndexer: (q.get("indexer") ?? "https://indexer-storage-testnet-turbo.0g.ai").replace(/\/$/, ""),
 };
+
+/** 0G Storage download URL for a root hash (indexer returns the exact uploaded bytes, CORS *) */
+export const zgDownloadUrl = (root: string) => `${CONFIG.zgIndexer}/file?root=${encodeURIComponent(root)}`;
 
 export const OPERATORS: Record<string, { color: string; short: string }> = {
   ZipKart: { color: "#ff6b1a", short: "ZK" },
